@@ -15,6 +15,7 @@ function createMainWindow() {
     minWidth: 900,
     minHeight: 600,
     title: 'HostBuddy',
+    icon: path.join(__dirname, '..', '..', 'build', 'icon.ico'),
     webPreferences: {
       preload: path.join(__dirname, '..', 'preload.js'),
       nodeIntegration: false,

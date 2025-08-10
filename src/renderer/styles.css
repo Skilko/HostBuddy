@@ -30,11 +30,7 @@ body {
   background: rgba(15, 23, 42, 0.7);
 }
 .branding { display: flex; align-items: center; gap: 12px; }
-.logo {
-  width: 36px; height: 36px; border-radius: 10px;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  display: grid; place-items: center; font-weight: 800;
-}
+.app-icon { width: 36px; height: 36px; border-radius: 10px; object-fit: cover; }
 h1 { font-size: 18px; margin: 0; }
 .subtitle { margin: 0; color: var(--muted); font-size: 12px; }
 

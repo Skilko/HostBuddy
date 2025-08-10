@@ -18,6 +18,9 @@ const btnCopyPrompt = document.getElementById('btnCopyPrompt');
 const promptTemplate = document.getElementById('promptTemplate');
 const loadingOverlay = document.getElementById('loadingOverlay');
 
+// Default icon used when a project has no uploaded icon
+const DEFAULT_APP_ICON = '../../assets/default-app.png';
+
 let iconBase64 = null;
 let editProjectId = null;
 
@@ -66,7 +69,7 @@ async function fetchAndRender() {
     const avatar = document.createElement('img');
     avatar.className = 'avatar';
     avatar.alt = '';
-    avatar.src = p.iconBase64 || '';
+    avatar.src = p.iconBase64 || DEFAULT_APP_ICON;
     avatar.onerror = () => {
       // Fallback to placeholder on broken image
       if (avatar.parentElement) {
@@ -78,7 +81,7 @@ async function fetchAndRender() {
     const title = document.createElement('h3'); title.className = 'title'; title.textContent = p.title;
     const desc = document.createElement('p'); desc.className = 'desc'; desc.textContent = p.description || '';
     const row = document.createElement('div'); row.className = 'row';
-    if (p.iconBase64) row.appendChild(avatar); else { const ph = document.createElement('div'); ph.className='avatar'; row.appendChild(ph); }
+    row.appendChild(avatar);
     const textWrap = document.createElement('div'); textWrap.appendChild(title); textWrap.appendChild(desc); row.appendChild(textWrap);
     const actions = document.createElement('div'); actions.className = 'actions';
     const runBtn = document.createElement('button'); runBtn.className = 'btn run'; runBtn.textContent = 'Run';
