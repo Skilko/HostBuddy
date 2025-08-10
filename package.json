@@ -10,6 +10,9 @@
     "test": "jest",
     "dist": "electron-builder -mwl",
     "dist:mac": "electron-builder --mac --x64 --arm64",
+    "dist:mac:arm64": "npm ci && electron-builder --mac --arm64",
+    "dist:mac:x64": "arch -x86_64 npm ci && arch -x86_64 electron-builder --mac --x64",
+    "dist:mac:both": "npm run dist:mac:arm64 && npm run dist:mac:x64",
     "dist:win": "electron-builder --win"
   },
   "keywords": [

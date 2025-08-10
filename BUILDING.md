@@ -13,11 +13,9 @@ Icons:
 
 macOS builds (recommended to build each arch with matching node_modules):
 - For Apple Silicon (arm64):
-  1. `npm ci`
-  2. `npm run dist:mac -- --arm64`
+  1. `npm run dist:mac:arm64`
 - For Intel (x64) on Apple Silicon (Rosetta):
-  1. `arch -x86_64 npm ci`
-  2. `arch -x86_64 npm run dist:mac -- --x64`
+  1. `npm run dist:mac:x64`
 - Output DMG is unsigned by default. Configure Apple signing/notarization before wide distribution.
 
 Windows build (run on Windows):
@@ -31,5 +29,8 @@ Code signing (optional but recommended):
 Notes:
 - Packaging bundles a local copy of `pnpm` and uses it at runtime to install client-side packages for user projects.
 - Cross-compiling is discouraged due to native optional deps (e.g., esbuild). Build on the target platform/arch when possible.
+
+CI builds:
+- You can trigger GitHub Actions workflow "Build Electron Artifacts" (workflow_dispatch) to build macOS arm64 DMG and Windows EXE and upload artifacts.
 
 
