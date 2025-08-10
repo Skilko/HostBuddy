@@ -76,17 +76,26 @@
             <ul>
               <li>Plain HTML (with inline CSS/JS)</li>
               <li>Single-file React component with a default export (TypeScript or JavaScript)</li>
-              <li>Imports are scanned and safe packages may be auto-installed (ignore-scripts, size/version caps). Prefer small client-only libs. Examples that work well: <code>react</code>, <code>react-dom</code>, <code>lucide-react</code>, <code>recharts</code>. You can also import <code>@/components/ui/*</code> primitives (Card, CardHeader, CardContent, CardTitle, Button, Input, Textarea, Label, Tabs, TabsList, TabsTrigger, TabsContent, Switch).</li>
+                <li>Imports are scanned and safe packages may be auto-installed using the bundled package manager (no system npm/yarn required). Installs run with <em>ignore-scripts</em> and size caps. Prefer small client-only libs. Examples: <code>react</code>, <code>react-dom</code>, <code>lucide-react</code>, <code>recharts</code>. You can also import <code>@/components/ui/*</code> primitives (Card, CardHeader, CardContent, CardTitle, Button, Input, Textarea, Label, Tabs, TabsList, TabsTrigger, TabsContent, Switch).</li>
             </ul>
           </div>
           <div>
-            <strong>How it runs:</strong>
+              <strong>How it runs:</strong>
             <ul>
-              <li>We auto-detect React vs HTML and set up the right environment.</li>
-              <li>React code is bundled automatically; HTML is displayed as-is.</li>
-              <li>Imports are scanned and safe packages are auto-installed with safeguards (ignore-scripts, size/version checks).</li>
+                <li>We auto-detect React vs HTML and set up the right environment.</li>
+                <li>React code is bundled at runtime; HTML is displayed as-is.</li>
+                <li>Imports are scanned and missing packages are auto-added to the project before install.</li>
             </ul>
           </div>
+            <div>
+              <strong>Workflow (dependencies):</strong>
+              <ul>
+                <li>Toggle <em>Offline use</em> when creating/editing a project to persist dependencies on your machine.</li>
+                <li>First run with <em>Offline use</em>: you’ll be prompted once to install dependencies. After that, runs are fast and work without internet.</li>
+                <li>Without <em>Offline use</em>: dependencies may be installed into a temporary folder for that run only.</li>
+                <li>Installs are safe (no lifecycle scripts, no optional deps) and cached in a shared store for reuse.</li>
+              </ul>
+            </div>
           <div>
             <strong>Prompt template:</strong>
             <p>Copy this and replace the placeholder with your application request.</p>
@@ -98,7 +107,7 @@ Requirements:
   - HTML: A complete HTML snippet, self-contained (inline CSS/JS). No external network calls.
   - React: A single component file (JSX/TSX) exporting default: `export default function App() { ... }`.
 - Client-side only. No servers. No environment variables.
-- If using imports, prefer small client-side libraries. The host may auto-install missing packages with safeguards (ignore-scripts, size caps).
+ - If using imports, prefer small client-side libraries. The host may auto-install missing packages with safeguards (ignore-scripts, size caps) via a bundled package manager.
 - You can import primitives from the path alias `@/components/ui/*` (Card, CardHeader, CardContent, CardTitle, Button, Input, Textarea, Label, Tabs, TabsList, TabsTrigger, TabsContent, Switch).
 
 Your task:

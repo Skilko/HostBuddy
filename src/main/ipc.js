@@ -1,9 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { execSync } = require('child_process');
-const crypto = require('crypto');
+const { spawnSync } = require('child_process');
 const esbuild = require('esbuild');
+const { dialog } = require('electron');
 
 // --- Helpers for safe package auto-installation ---
 const SAFE_MAX_PACKAGES = 20; // prevent abuse
@@ -58,21 +58,37 @@ function parseImportedPackagesFromCode(code) {
   return Array.from(found);
 }
 
-function npmViewJson(cwd, pkg) {
-  // Try to fetch specific fields first to reduce payload and ensure size is available.
+function resolveBundledPnpmPath() {
+  // Dev path: project/node_modules/pnpm/dist/pnpm.cjs
+  const devPath = path.join(__dirname, '..', '..', 'node_modules', 'pnpm', 'dist', 'pnpm.cjs');
+  if (fs.existsSync(devPath)) return devPath;
+  // Production path: inside app resources
+  return path.join(process.resourcesPath || '', 'pnpm', 'pnpm.cjs');
+}
+
+function runPnpm(args, options = {}) {
+  const pnpmCli = resolveBundledPnpmPath();
+  const result = spawnSync(process.execPath, [pnpmCli, ...args], {
+    ...options,
+    env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', ...(options.env || {}) },
+    encoding: 'utf8'
+  });
+  return result;
+}
+
+function pnpmViewJson(cwd, pkg) {
+  // Try narrow query first
   try {
-    const out = execSync(`npm view ${pkg} version dist.unpackedSize dist.size --json`, { cwd, stdio: ['ignore', 'pipe', 'ignore'], timeout: 8000 });
-    const text = out.toString('utf8').trim();
+    const res = runPnpm(['view', pkg, 'version', 'dist.unpackedSize', 'dist.size', '--json'], { cwd, stdio: ['ignore', 'pipe', 'ignore'] });
+    const text = (res.stdout || '').trim();
     if (text) {
       const parsed = JSON.parse(text);
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
     }
-  } catch (_) {
-    // fall through to broader query
-  }
+  } catch (_) {}
   try {
-    const out = execSync(`npm view ${pkg} --json`, { cwd, stdio: ['ignore', 'pipe', 'ignore'], timeout: 8000 });
-    const text = out.toString('utf8').trim();
+    const res = runPnpm(['view', pkg, '--json'], { cwd, stdio: ['ignore', 'pipe', 'ignore'] });
+    const text = (res.stdout || '').trim();
     if (!text) return null;
     const parsed = JSON.parse(text);
     return parsed && typeof parsed === 'object' ? parsed : null;
@@ -85,7 +101,7 @@ function selectSafePackages(cwd, candidates) {
   const selected = [];
   let totalBytes = 0;
   for (const name of candidates.slice(0, SAFE_MAX_PACKAGES)) {
-    const meta = npmViewJson(cwd, name);
+    const meta = pnpmViewJson(cwd, name);
     if (!meta) continue;
     const version = (meta['version']) || (meta['dist-tags'] && meta['dist-tags'].latest) || null;
     const sizeBytes = (meta.dist && (meta.dist.unpackedSize || meta.dist.size)) || meta['dist.unpackedSize'] || meta['dist.size'] || 0;
@@ -265,12 +281,20 @@ function prepareReactProjectPersistent(code, targetDir) {
   return targetDir;
 }
 
-function installDependencies(dir) {
-  try {
-    execSync('npm pack >/dev/null 2>&1 || true', { cwd: dir, stdio: 'ignore' });
-    // Install with strong safeguards
-    execSync('npm i --silent --no-progress --no-audit --no-fund --omit=dev --ignore-scripts', { cwd: dir, stdio: 'inherit' });
-  } catch (e) {
+function installDependenciesWithPnpm(app, dir, { preferOffline = false } = {}) {
+  const storeDir = path.join(app.getPath('userData'), 'HostBuddy', 'pnpm-store');
+  const args = [
+    'install',
+    '--prod',
+    '--ignore-scripts',
+    '--no-optional',
+    '--reporter', 'silent',
+    '--store-dir', storeDir,
+    '--registry', 'https://registry.npmjs.org/'
+  ];
+  if (preferOffline) args.push('--prefer-offline');
+  const res = runPnpm(args, { cwd: dir, stdio: 'inherit' });
+  if (res.error || res.status !== 0) {
     throw new Error('Failed to install React dependencies. Ensure you are online.');
   }
 }
@@ -347,12 +371,25 @@ function initIpc(ipcMain, store, app, BrowserWindow) {
           dir = prepareReactProjectPersistent(userCode, offlineDir);
           const nodeModulesPath = path.join(dir, 'node_modules');
           try {
-            // If dependencies are already present, we can skip install unless we need updates
-            if (!fs.existsSync(nodeModulesPath)) {
-              installDependencies(dir);
+            const hasNodeModules = fs.existsSync(nodeModulesPath);
+            if (!hasNodeModules) {
+              const { response } = await dialog.showMessageBox({
+                type: 'question',
+                buttons: ['Install', 'Cancel'],
+                defaultId: 0,
+                cancelId: 1,
+                title: 'Install dependencies?',
+                message: 'This project needs to download client-side packages (e.g. React) one time to run offline. Install now?',
+                detail: 'Packages are installed with security safeguards (no scripts) and cached for reuse.'
+              });
+              if (response !== 0) {
+                runner.close();
+                throw new Error('Installation cancelled.');
+              }
+              installDependenciesWithPnpm(app, dir, { preferOffline: false });
             } else {
-              // Best-effort install to pull new deps; tolerate failures for offline reuse
-              try { installDependencies(dir); } catch (_) {}
+              // Try to refresh deps if new ones were added; tolerate failures
+              try { installDependenciesWithPnpm(app, dir, { preferOffline: true }); } catch (_) {}
             }
           } catch (installErr) {
             if (!fs.existsSync(nodeModulesPath)) {
@@ -361,7 +398,7 @@ function initIpc(ipcMain, store, app, BrowserWindow) {
           }
         } else {
           dir = prepareReactProject(userCode, tempBase);
-          installDependencies(dir);
+          installDependenciesWithPnpm(app, dir, { preferOffline: false });
         }
         await bundleWithEsbuild(dir);
         await runner.loadFile(path.join(dir, 'index.html'));
