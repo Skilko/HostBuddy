@@ -1,0 +1,27 @@
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const ProjectsStore = require('../src/main/projectsStore');
+
+function makeTempDir() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hostbuddy-'));
+  return dir;
+}
+
+describe('ProjectsStore', () => {
+  test('create, list, get, delete', () => {
+    const dir = makeTempDir();
+    const store = new ProjectsStore(dir);
+    const created = store.create({ title: 'Test', description: 'Desc', iconBase64: null, code: '<h1>Hello</h1>' });
+    expect(created.id).toBeTruthy();
+    const all = store.getAll();
+    expect(all.length).toBe(1);
+    const fetched = store.getById(created.id);
+    expect(fetched.title).toBe('Test');
+    const removed = store.delete(created.id);
+    expect(removed).toBe(true);
+    expect(store.getAll().length).toBe(0);
+  });
+});
+
+

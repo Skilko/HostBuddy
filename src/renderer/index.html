@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HostBuddy</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="branding">
+        <div class="logo">HB</div>
+        <div>
+          <h1>HostBuddy</h1>
+          <p class="subtitle">Run simple AI-made apps safely on your computer</p>
+        </div>
+      </div>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <button id="btnGettingStarted" class="btn" style="background:#0b1022;border-color:#2c3657;">Getting Started</button>
+        <button id="btnNew" class="primary">New Project</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <div id="projectsGrid" class="grid"></div>
+      <div id="emptyState" class="empty hidden">
+        <h2>No projects yet</h2>
+        <p>Create your first project to get started.</p>
+        <button id="btnNew2" class="primary">Create Project</button>
+      </div>
+    </main>
+
+    <!-- Global loading overlay -->
+    <div id="loadingOverlay" class="overlay hidden" aria-hidden="true">
+      <div class="overlay-content">
+        <div class="spinner" aria-hidden="true"></div>
+        <div class="msg" role="status">Loading…</div>
+      </div>
+    </div>
+
+    <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="modal-content">
+        <h2 id="modalTitle">Create Project</h2>
+        <form id="projectForm">
+          <label>Title
+            <input id="title" type="text" placeholder="My Project" required />
+          </label>
+          <label>Description
+            <textarea id="description" placeholder="What does it do?"></textarea>
+          </label>
+          <label>Picture / Icon (optional)
+            <input id="icon" type="file" accept="image/*" />
+            <small style="color:#9ca3af">Leave blank to keep the current picture when editing.</small>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;">
+            <input id="offline" type="checkbox" />
+            <span>Offline use? Install dependencies persistently so it can run without internet.</span>
+          </label>
+          <label>Paste your HTML or React Component (required)
+            <textarea id="code" class="code" placeholder="Paste HTML or a React component (default export) here" required></textarea>
+          </label>
+          <div class="actions">
+            <button type="button" id="btnCancel">Cancel</button>
+            <button type="submit" class="primary">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="gsModal" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="modal-content">
+        <h2>Getting Started</h2>
+        <div style="display:grid; gap:12px; color:#cbd5e1; font-size:14px;">
+          <div>
+            <strong>Supported code:</strong>
+            <ul>
+              <li>Plain HTML (with inline CSS/JS)</li>
+              <li>Single-file React component with a default export (TypeScript or JavaScript)</li>
+              <li>Imports are scanned and safe packages may be auto-installed (ignore-scripts, size/version caps). Prefer small client-only libs. Examples that work well: <code>react</code>, <code>react-dom</code>, <code>lucide-react</code>, <code>recharts</code>. You can also import <code>@/components/ui/*</code> primitives (Card, CardHeader, CardContent, CardTitle, Button, Input, Textarea, Label, Tabs, TabsList, TabsTrigger, TabsContent, Switch).</li>
+            </ul>
+          </div>
+          <div>
+            <strong>How it runs:</strong>
+            <ul>
+              <li>We auto-detect React vs HTML and set up the right environment.</li>
+              <li>React code is bundled automatically; HTML is displayed as-is.</li>
+              <li>Imports are scanned and safe packages are auto-installed with safeguards (ignore-scripts, size/version checks).</li>
+            </ul>
+          </div>
+          <div>
+            <strong>Prompt template:</strong>
+            <p>Copy this and replace the placeholder with your application request.</p>
+            <textarea id="promptTemplate" class="code" readonly>
+Create a single-file app for a local Electron host. Output only the code file.
+
+Requirements:
+- Choose one:
+  - HTML: A complete HTML snippet, self-contained (inline CSS/JS). No external network calls.
+  - React: A single component file (JSX/TSX) exporting default: `export default function App() { ... }`.
+- Client-side only. No servers. No environment variables.
+- If using imports, prefer small client-side libraries. The host may auto-install missing packages with safeguards (ignore-scripts, size caps).
+- You can import primitives from the path alias `@/components/ui/*` (Card, CardHeader, CardContent, CardTitle, Button, Input, Textarea, Label, Tabs, TabsList, TabsTrigger, TabsContent, Switch).
+
+Your task:
+- Build this application: <<<APP_REQUEST>>>  ← Replace with your request
+
+Output:
+- HTML option: a complete HTML snippet.
+- React option: a single component file with `export default`.
+            </textarea>
+          </div>
+          <div class="actions">
+            <button id="btnCopyPrompt" class="primary" type="button">Copy Prompt</button>
+            <button id="btnCloseGs" type="button">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="renderer.js"></script>
+  </body>
+  </html>
+
+
