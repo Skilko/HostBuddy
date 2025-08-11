@@ -3,7 +3,7 @@ const path = require('path');
 const os = require('os');
 const { spawnSync } = require('child_process');
 const esbuild = require('esbuild');
-const { dialog } = require('electron');
+const { dialog, shell } = require('electron');
 
 // --- Helpers for safe package auto-installation ---
 const SAFE_MAX_PACKAGES = 20; // prevent abuse
@@ -415,6 +415,23 @@ function initIpc(ipcMain, store, app, BrowserWindow) {
       await runner.loadURL(dataUrl);
       return true;
     }
+  });
+
+  ipcMain.handle('app:openFeedback', async () => {
+    const { response } = await dialog.showMessageBox({
+      type: 'question',
+      buttons: ['OK', 'Cancel'],
+      defaultId: 0,
+      cancelId: 1,
+      title: 'Open external link?',
+      message: 'This will open your browser to the Host Buddy project page.',
+      detail: 'You are leaving the app to visit an external website.'
+    });
+    if (response === 0) {
+      await shell.openExternal('https://www.bboxai.co.uk/projects/host-buddy');
+      return true;
+    }
+    return false;
   });
 }
 

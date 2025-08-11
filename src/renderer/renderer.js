@@ -3,6 +3,7 @@ const empty = document.getElementById('emptyState');
 const btnNew = document.getElementById('btnNew');
 const btnGettingStarted = document.getElementById('btnGettingStarted');
 const btnNew2 = document.getElementById('btnNew2');
+const btnFeedback = document.getElementById('btnFeedback');
 const modal = document.getElementById('modal');
 const form = document.getElementById('projectForm');
 const btnCancel = document.getElementById('btnCancel');
@@ -126,6 +127,14 @@ btnCopyPrompt && btnCopyPrompt.addEventListener('click', async () => {
     btnCopyPrompt.textContent = 'Copied!';
     setTimeout(() => (btnCopyPrompt.textContent = 'Copy Prompt'), 1200);
   } catch {}
+});
+
+btnFeedback && btnFeedback.addEventListener('click', async () => {
+  try {
+    await window.api.openFeedback();
+  } catch (e) {
+    alert('Could not open feedback page.');
+  }
 });
 
 async function readFileAsDataUrl(file) {

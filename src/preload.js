@@ -5,7 +5,8 @@ contextBridge.exposeInMainWorld('api', {
   createProject: (payload) => ipcRenderer.invoke('projects:create', payload),
   updateProject: (id, updates) => ipcRenderer.invoke('projects:update', id, updates),
   deleteProject: (id) => ipcRenderer.invoke('projects:delete', id),
-  runProject: (id) => ipcRenderer.invoke('projects:run', id)
+  runProject: (id) => ipcRenderer.invoke('projects:run', id),
+  openFeedback: () => ipcRenderer.invoke('app:openFeedback')
 });
 
 
