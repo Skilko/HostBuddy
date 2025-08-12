@@ -2,7 +2,6 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { spawnSync } = require('child_process');
-const esbuild = require('esbuild');
 const { dialog, shell } = require('electron');
 
 // --- Helpers for safe package auto-installation ---
@@ -70,6 +69,8 @@ function runPnpm(args, options = {}) {
   const pnpmCli = resolveBundledPnpmPath();
   const result = spawnSync(process.execPath, [pnpmCli, ...args], {
     ...options,
+    // In GUI context (packaged app), there is no TTY to inherit; use pipes for reliability
+    stdio: options.stdio || 'pipe',
     env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', ...(options.env || {}) },
     encoding: 'utf8'
   });
@@ -293,15 +294,49 @@ function installDependenciesWithPnpm(app, dir, { preferOffline = false } = {}) {
     '--registry', 'https://registry.npmjs.org/'
   ];
   if (preferOffline) args.push('--prefer-offline');
-  const res = runPnpm(args, { cwd: dir, stdio: 'inherit' });
+  const res = runPnpm(args, { cwd: dir });
   if (res.error || res.status !== 0) {
-    throw new Error('Failed to install React dependencies. Ensure you are online.');
+    const details = (res && (res.stderr || res.stdout)) ? `\n${(res.stderr || res.stdout).toString().slice(0, 2000)}` : '';
+    throw new Error('Failed to install React dependencies. Ensure you are online.' + details);
   }
+}
+
+function resolveEsbuildBinaryPath() {
+  // Prefer unpacked binary in production (ASAR) to avoid ENOTDIR when spawning
+  const binName = process.platform === 'win32' ? 'esbuild.exe' : 'esbuild';
+  const candidates = [];
+  // Packaged app path (inside Resources/app.asar.unpacked)
+  if (process.resourcesPath) {
+    candidates.push(path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', 'esbuild', 'bin', binName));
+    // Some environments package platform-specific helper under esbuild-*; include just in case
+    candidates.push(path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', `esbuild-${process.platform}-${process.arch}`, 'bin', binName));
+  }
+  // Dev install path (when running via npm start)
+  candidates.push(path.join(__dirname, '..', '..', 'node_modules', 'esbuild', 'bin', binName));
+  for (const p of candidates) {
+    try {
+      if (fs.existsSync(p)) return p;
+    } catch (_) {}
+  }
+  return null;
 }
 
 async function bundleWithEsbuild(dir) {
   const entry = path.join(dir, 'index.tsx');
   const outFile = path.join(dir, 'bundle.js');
+  // Ensure esbuild uses a real file path (not inside app.asar) when packaged
+  const binPath = resolveEsbuildBinaryPath();
+  if (binPath) {
+    process.env.ESBUILD_BINARY_PATH = binPath;
+  }
+  // Require esbuild only after ESBUILD_BINARY_PATH is set, otherwise it will try to spawn from app.asar
+  const esbuild = require('esbuild');
+  // Debug info to help diagnose packaged runs
+  try {
+    const userBase = path.join(require('electron').app.getPath('userData'), 'HostBuddy');
+    fs.mkdirSync(userBase, { recursive: true });
+    fs.writeFileSync(path.join(userBase, 'last-react-run-debug.log'), `binPath=${binPath || ''}\nresourcesPath=${process.resourcesPath || ''}\n`);
+  } catch (_) {}
   await esbuild.build({
     entryPoints: [entry],
     outfile: outFile,
@@ -403,7 +438,22 @@ function initIpc(ipcMain, store, app, BrowserWindow) {
         await runner.loadFile(path.join(dir, 'index.html'));
         return true;
       } catch (err) {
-        // Fallback gracefully to HTML if bundling fails (the code might actually be HTML)
+        try {
+          const errMsg = (err && (err.stack || err.message || String(err))) || 'Unknown error';
+          // Persist last error for troubleshooting
+          const logPath = path.join(userBase, 'last-react-run-error.log');
+          fs.mkdirSync(userBase, { recursive: true });
+          fs.writeFileSync(logPath, `[${new Date().toISOString()}]\n${errMsg}\n`);
+          // Surface an error dialog in packaged runs to make failures visible
+          await dialog.showMessageBox({
+            type: 'error',
+            title: 'React project failed to run',
+            message: 'React build or dependency install failed. Falling back to HTML view.',
+            detail: errMsg.slice(0, 2000),
+            buttons: ['OK']
+          });
+        } catch (_) {}
+        // Fallback gracefully to HTML so the user still sees something
         const html = ensureHtmlDocument(userCode);
         const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
         await runner.loadURL(dataUrl);
