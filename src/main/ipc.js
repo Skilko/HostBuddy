@@ -147,15 +147,44 @@ function ensureHtmlDocument(userHtml) {
 function detectCodeType(code) {
   if (!code) return 'html';
   const src = String(code);
-  const looksLikeHtml = /<!doctype\s+html|<html|<head|<body/i.test(src.trim());
-  if (looksLikeHtml) return 'html';
-  const hasReactImports = /(from\s+['"]react['"])|import\s+React/.test(src);
-  const hasDefaultExport = /export\s+default\s+/.test(src);
-  if (hasReactImports || hasDefaultExport) return 'react';
-  // Heuristic: if it begins with a '<' and not an HTML document tag, it's likely an HTML snippet
-  const startsWithTag = /^\s*</.test(src);
+  const trimmed = src.trim();
+
+  // React signals first (take precedence)
+  const hasReactFrom = /\bfrom\s+['\"]react['\"]/i.test(trimmed);
+  const hasImportReactIdent = /\bimport\s+React\b/.test(trimmed);
+  const hasDefaultExport = /\bexport\s+default\b/.test(trimmed);
+  if (hasReactFrom || hasImportReactIdent || hasDefaultExport) return 'react';
+
+  // Looks like a full HTML document if it starts with one of the root tags
+  const looksLikeFullHtmlDoc = /^(?:\s*<!doctype\s+html|\s*<html[\s>]|\s*<head[\s>]|\s*<body[\s>])/i.test(trimmed);
+  if (looksLikeFullHtmlDoc) return 'html';
+
+  // Heuristic: starts with a tag → treat as HTML snippet
+  const startsWithTag = /^\s*</.test(trimmed);
   if (startsWithTag) return 'html';
+
+  // Default to HTML if unsure (safer fallback)
   return 'html';
+}
+
+function writeDetectionDebugLog(app, code, extras = {}) {
+  try {
+    const userBase = path.join(app.getPath('userData'), 'HostBuddy');
+    fs.mkdirSync(userBase, { recursive: true });
+    const sample = String(code).slice(0, 200).replace(/\n/g, '\\n');
+    const trimmed = String(code).trim();
+    const log = {
+      ts: new Date().toISOString(),
+      preview: sample,
+      looksLikeFullHtmlDoc: /^(?:\s*<!doctype\s+html|\s*<html[\s>]|\s*<head[\s>]|\s*<body[\s>])/i.test(trimmed),
+      hasReactFrom: /\bfrom\s+['\"]react['\"]/i.test(trimmed),
+      hasImportReactIdent: /\bimport\s+React\b/.test(trimmed),
+      hasDefaultExport: /\bexport\s+default\b/.test(trimmed),
+      startsWithTag: /^\s*</.test(trimmed),
+      ...extras,
+    };
+    fs.writeFileSync(path.join(userBase, 'detect-debug.log'), JSON.stringify(log, null, 2));
+  } catch (_) {}
 }
 
 function makeRunDir(base) {
@@ -304,19 +333,36 @@ function installDependenciesWithPnpm(app, dir, { preferOffline = false } = {}) {
 function resolveEsbuildBinaryPath() {
   // Prefer unpacked binary in production (ASAR) to avoid ENOTDIR when spawning
   const binName = process.platform === 'win32' ? 'esbuild.exe' : 'esbuild';
-  const candidates = [];
   // Packaged app path (inside Resources/app.asar.unpacked)
   if (process.resourcesPath) {
-    candidates.push(path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', 'esbuild', 'bin', binName));
-    // Some environments package platform-specific helper under esbuild-*; include just in case
-    candidates.push(path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', `esbuild-${process.platform}-${process.arch}`, 'bin', binName));
-  }
-  // Dev install path (when running via npm start)
-  candidates.push(path.join(__dirname, '..', '..', 'node_modules', 'esbuild', 'bin', binName));
-  for (const p of candidates) {
-    try {
-      if (fs.existsSync(p)) return p;
-    } catch (_) {}
+    const packagedCandidates = [
+      path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', 'esbuild', 'bin', binName),
+      // Prefer platform-specific helper when available
+      path.join(
+        process.resourcesPath,
+        'app.asar.unpacked',
+        'node_modules',
+        `esbuild-${process.platform}-${process.arch}`,
+        'bin',
+        binName
+      ),
+    ];
+    for (const p of packagedCandidates) {
+      try { if (fs.existsSync(p)) return p; } catch (_) {}
+    }
+  } else {
+    // Development: prefer native platform-specific binary. If not found, let esbuild resolve itself
+    const devPlatformSpecific = path.join(
+      __dirname,
+      '..',
+      '..',
+      'node_modules',
+      `esbuild-${process.platform}-${process.arch}`,
+      'bin',
+      binName
+    );
+    try { if (fs.existsSync(devPlatformSpecific)) return devPlatformSpecific; } catch (_) {}
+    // Do NOT return the JS shim at node_modules/esbuild/bin in dev; leaving env unset lets esbuild resolve correctly
   }
   return null;
 }
@@ -393,6 +439,7 @@ function initIpc(ipcMain, store, app, BrowserWindow) {
     });
     const userCode = project.code || '';
     const codeType = detectCodeType(userCode);
+    writeDetectionDebugLog(app, userCode, { detected: codeType });
     if (codeType === 'react') {
       const userBase = path.join(app.getPath('userData'), 'HostBuddy');
       const tempBase = path.join(userBase, 'react-runs');

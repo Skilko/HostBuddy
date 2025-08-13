@@ -13,6 +13,7 @@ const iconEl = document.getElementById('icon');
 const codeEl = document.getElementById('code');
 const offlineEl = document.getElementById('offline');
 const modalTitle = document.getElementById('modalTitle');
+const lineNumbers = document.getElementById('lineNumbers');
 const gsModal = document.getElementById('gsModal');
 const btnCloseGs = document.getElementById('btnCloseGs');
 const btnCopyPrompt = document.getElementById('btnCopyPrompt');
@@ -25,8 +26,43 @@ const DEFAULT_APP_ICON = '../../assets/default-app.png';
 let iconBase64 = null;
 let editProjectId = null;
 
-function showModal() { modal.classList.remove('hidden'); }
-function hideModal() { modal.classList.add('hidden'); form.reset(); iconBase64 = null; editProjectId = null; if (modalTitle) modalTitle.textContent = 'Create Project'; }
+// Line numbers functionality
+function updateLineNumbers() {
+  if (!codeEl || !lineNumbers) return;
+  
+  const lines = codeEl.value.split('\n');
+  const lineCount = Math.max(lines.length, 1);
+  
+  let lineNumbersText = '';
+  for (let i = 1; i <= lineCount; i++) {
+    lineNumbersText += i + '\n';
+  }
+  
+  lineNumbers.textContent = lineNumbersText;
+}
+
+function syncScrollPosition() {
+  if (!codeEl || !lineNumbers) return;
+  lineNumbers.scrollTop = codeEl.scrollTop;
+}
+
+function syncScrollFromLineNumbers() {
+  if (!codeEl || !lineNumbers) return;
+  codeEl.scrollTop = lineNumbers.scrollTop;
+}
+
+function showModal() { 
+  modal.classList.remove('hidden'); 
+  updateLineNumbers();
+}
+function hideModal() { 
+  modal.classList.add('hidden'); 
+  form.reset(); 
+  iconBase64 = null; 
+  editProjectId = null; 
+  if (modalTitle) modalTitle.textContent = 'Create Project';
+  updateLineNumbers();
+}
 
 function openCreateModal() {
   editProjectId = null;
@@ -54,6 +90,7 @@ function openEditModal(project) {
   iconBase64 = null;
   if (offlineEl) offlineEl.checked = !!project.offline;
   showModal();
+  updateLineNumbers();
 }
 
 async function fetchAndRender() {
@@ -120,6 +157,30 @@ btnNew.addEventListener('click', () => openCreateModal());
 btnGettingStarted.addEventListener('click', () => openGettingStarted());
 btnNew2.addEventListener('click', () => openCreateModal());
 btnCancel.addEventListener('click', hideModal);
+
+// Add event listeners for line numbers functionality
+if (codeEl && lineNumbers) {
+  // Update line numbers when content changes
+  codeEl.addEventListener('input', updateLineNumbers);
+  codeEl.addEventListener('paste', () => setTimeout(updateLineNumbers, 0));
+  codeEl.addEventListener('keydown', (e) => {
+    // Update line numbers after a short delay to account for text changes
+    setTimeout(updateLineNumbers, 0);
+  });
+  
+  // Sync scroll positions
+  codeEl.addEventListener('scroll', syncScrollPosition);
+  lineNumbers.addEventListener('scroll', syncScrollFromLineNumbers);
+  
+  // Handle wheel events for better synchronization
+  codeEl.addEventListener('wheel', (e) => {
+    setTimeout(syncScrollPosition, 0);
+  });
+  
+  lineNumbers.addEventListener('wheel', (e) => {
+    setTimeout(syncScrollFromLineNumbers, 0);
+  });
+}
 btnCloseGs && btnCloseGs.addEventListener('click', closeGettingStarted);
 btnCopyPrompt && btnCopyPrompt.addEventListener('click', async () => {
   try {
