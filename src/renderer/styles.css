@@ -150,11 +150,12 @@ h1 { font-size: 18px; margin: 0; }
 .empty { text-align: center; padding: 60px 0; color: var(--muted); }
 .hidden { display: none; }
 
-.modal { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,0.5); }
+.modal { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,0.5); overflow: auto; }
 .modal.hidden { display: none; }
 .modal-content { 
   width: min(860px, 92vw); 
   max-height: 90vh; 
+  height: 90vh; 
   background: #0b1224; 
   border: 1px solid var(--border); 
   border-radius: 16px; 
@@ -190,8 +191,9 @@ h1 { font-size: 18px; margin: 0; }
   display: grid;
   gap: 16px;
   padding: 20px 18px;
-  overflow-y: auto;
-  flex: 1;
+  overflow: auto;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .modal-footer {
@@ -204,7 +206,7 @@ h1 { font-size: 18px; margin: 0; }
   z-index: 10;
 }
 
-form { display: grid; gap: 0; }
+.modal-content > form { display: flex; flex-direction: column; gap: 0; min-height: 0; flex: 1 1 auto; }
 label { display: grid; gap: 6px; font-size: 14px; color: var(--muted); }
 input[type="text"], textarea { width: 100%; padding: 10px 12px; background: #0a0f20; border: 1px solid #1f2a44; color: var(--text); border-radius: 10px; }
 
@@ -310,3 +312,13 @@ textarea.code:focus {
 }
 
 
+/* Step-form layout in Create Project modal */
+.form-steps { display: grid; gap: 14px; }
+.step { border: 1px solid var(--border); border-radius: 12px; background: rgba(255,255,255,0.02); }
+.step-header { display: flex; align-items: center; gap: 10px; padding: 12px 12px 0 12px; }
+.step-num { width: 22px; height: 22px; border-radius: 999px; display: grid; place-items: center; background: rgba(79,70,229,0.18); color: #c7d2fe; font-weight: 700; font-size: 12px; }
+.step-title { font-weight: 700; color: var(--text); font-size: 14px; }
+.step-body { padding: 10px 12px 12px 12px; display: grid; gap: 8px; }
+.step-body label { margin: 0; }
+.hint { color: var(--muted); font-size: 12px; }
+.checkbox-row { display: flex; align-items: center; gap: 8px; }

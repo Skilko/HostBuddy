@@ -270,7 +270,7 @@ function renderFolders(folders, projects) {
       const next = prompt('Folder name', f.name || '');
       if (next && next.trim()) { await window.api.renameFolder(f.id, next.trim()); fetchAndRender(); }
     });
-    const delBtn = document.createElement('button'); delBtn.className = 'btn'; delBtn.setAttribute('aria-label', 'Delete'); delBtn.title = 'Delete'; delBtn.appendChild(createLucideIcon('trash'));
+    const delBtn = document.createElement('button'); delBtn.className = 'btn delete'; delBtn.setAttribute('aria-label', 'Delete'); delBtn.title = 'Delete'; delBtn.appendChild(createLucideIcon('trash'));
     delBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
       if (confirm('Delete this folder? Projects will remain, unassigned.')) {
