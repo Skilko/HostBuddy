@@ -64,6 +64,7 @@ h1 { font-size: 18px; margin: 0; }
 .desc { color: var(--muted); font-size: 13px; margin: 0; }
 .card .actions { display: flex; gap: 8px; margin-top: 8px; }
 .btn { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; }
+.btn svg { width: 18px; height: 18px; display: block; }
 .btn.run { border-color: var(--accent); color: white; background: linear-gradient(135deg, var(--accent), #7c3aed); }
 .btn.delete { border-color: #3f1f1f; color: #fecaca; background: #1f0f0f; }
 
@@ -215,5 +216,18 @@ textarea.code:focus {
 .overlay .msg { color: var(--text); font-weight: 600; }
 .spinner { width: 28px; height: 28px; border: 3px solid rgba(255,255,255,0.25); border-top-color: white; border-radius: 50%; animation: spin 1s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+
+/* Make the prompt template stand out */
+#promptTemplate {
+  background: #0b1224;
+  border: 1px solid #2c3657;
+  border-radius: 10px;
+}
+
+#promptTemplate:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.35);
+}
 
 

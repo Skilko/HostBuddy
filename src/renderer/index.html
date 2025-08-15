@@ -16,6 +16,10 @@
         </div>
       </div>
       <div style="display:flex; gap:10px; align-items:center;">
+        <select id="folderFilter" class="btn" style="min-width:180px">
+          <option value="all">All projects</option>
+        </select>
+        <button id="btnManageFolders" class="btn">Folders</button>
         <button id="btnFeedback" class="btn">Feedback</button>
         <button id="btnGettingStarted" class="btn" style="background:#0b1022;border-color:#2c3657;">Getting Started</button>
         <button id="btnImport" class="btn">Import</button>
@@ -56,6 +60,11 @@
             </label>
             <label>Description
               <textarea id="description" placeholder="What does it do?"></textarea>
+            </label>
+            <label>Folder (optional)
+              <select id="folderSelect">
+                <option value="">None</option>
+              </select>
             </label>
             <label>Picture / Icon (optional)
               <input id="icon" type="file" accept="image/*" />
@@ -116,6 +125,15 @@
                 </ul>
               </div>
             <div>
+              <strong>Sharing: Import / Export</strong>
+              <ul>
+                <li>Export a project from its card using the Export button. This saves a <code>.hbproj</code> (JSON) that includes the title, description, picture/icon, and code.</li>
+                <li>Import projects from the header Import button (also available in the empty state). You can select multiple files; <code>.hbproj</code> and JSON exports are supported.</li>
+                <li>Dependencies are not bundled in the export. HTML runs immediately; React projects may prompt to install client-side packages the first time they run.</li>
+                <li>All operations are local. The app does not upload your projects.</li>
+              </ul>
+            </div>
+            <div>
               <strong>Prompt template:</strong>
               <p>Copy this and replace the placeholder with your application request.</p>
               <textarea id="promptTemplate" class="code" readonly>
@@ -143,6 +161,27 @@ Output:
           <div class="actions">
             <button id="btnCopyPrompt" class="primary" type="button">Copy Prompt</button>
             <button id="btnCloseGs" type="button">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="foldersModal" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Folders</h2>
+          <p class="modal-subtitle">Create folders to organise your projects. Deleting a folder requires it to be empty.</p>
+        </div>
+        <div class="modal-body">
+          <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
+            <input id="folderNameInput" type="text" placeholder="New folder name" style="flex:1;" />
+            <button id="btnAddFolder" class="primary" type="button">Add</button>
+          </div>
+          <div id="foldersList" style="display:grid; gap:8px;"></div>
+        </div>
+        <div class="modal-footer">
+          <div class="actions">
+            <button id="btnCloseFolders" type="button">Close</button>
           </div>
         </div>
       </div>

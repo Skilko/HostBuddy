@@ -13,22 +13,53 @@ class ProjectsStore {
       fs.mkdirSync(this.baseDir, { recursive: true });
     }
     if (!fs.existsSync(this.dataFile)) {
-      fs.writeFileSync(this.dataFile, JSON.stringify({ projects: [] }, null, 2));
+      fs.writeFileSync(this.dataFile, JSON.stringify({ projects: [], folders: [] }, null, 2));
+    } else {
+      // Migrate older files that may not have folders
+      try {
+        const raw = fs.readFileSync(this.dataFile, 'utf-8');
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') {
+          fs.writeFileSync(this.dataFile, JSON.stringify({ projects: [], folders: [] }, null, 2));
+        } else if (!Array.isArray(parsed.folders)) {
+          parsed.folders = [];
+          if (!Array.isArray(parsed.projects)) parsed.projects = [];
+          fs.writeFileSync(this.dataFile, JSON.stringify(parsed, null, 2));
+        }
+      } catch (_) {
+        fs.writeFileSync(this.dataFile, JSON.stringify({ projects: [], folders: [] }, null, 2));
+      }
     }
   }
 
-  readAll() {
+  readData() {
     const raw = fs.readFileSync(this.dataFile, 'utf-8');
     try {
       const parsed = JSON.parse(raw);
-      return Array.isArray(parsed.projects) ? parsed.projects : [];
+      const projects = Array.isArray(parsed.projects) ? parsed.projects : [];
+      const folders = Array.isArray(parsed.folders) ? parsed.folders : [];
+      return { projects, folders };
     } catch (e) {
-      return [];
+      return { projects: [], folders: [] };
     }
   }
 
+  writeData(data) {
+    const safe = {
+      projects: Array.isArray(data.projects) ? data.projects : [],
+      folders: Array.isArray(data.folders) ? data.folders : []
+    };
+    fs.writeFileSync(this.dataFile, JSON.stringify(safe, null, 2));
+  }
+
+  readAll() {
+    return this.readData().projects;
+  }
+
   writeAll(projects) {
-    fs.writeFileSync(this.dataFile, JSON.stringify({ projects }, null, 2));
+    const data = this.readData();
+    data.projects = projects;
+    this.writeData(data);
   }
 
   getAll() {
@@ -39,10 +70,10 @@ class ProjectsStore {
     return this.readAll().find(p => p.id === id) || null;
   }
 
-  create({ title, description, iconBase64, code, offline }) {
+  create({ title, description, iconBase64, code, offline, folderId }) {
     const id = this.generateId();
     const now = new Date().toISOString();
-    const project = { id, title, description, iconBase64: iconBase64 || null, code, offline: !!offline, createdAt: now, updatedAt: now };
+    const project = { id, title, description, iconBase64: iconBase64 || null, code, offline: !!offline, folderId: folderId || null, createdAt: now, updatedAt: now };
     const projects = this.readAll();
     projects.push(project);
     this.writeAll(projects);
@@ -72,6 +103,42 @@ class ProjectsStore {
       return crypto.randomUUID();
     }
     return 'p_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+  }
+
+  // ---- Folders API ----
+  getFolders() {
+    return this.readData().folders;
+  }
+
+  createFolder(name) {
+    const trimmed = String(name || '').trim();
+    if (!trimmed) throw new Error('Folder name is required');
+    const data = this.readData();
+    // Prevent exact duplicate names (case-insensitive)
+    const exists = data.folders.some(f => f.name.toLowerCase() === trimmed.toLowerCase());
+    if (exists) throw new Error('Folder name already exists');
+    const folder = { id: this.generateFolderId(), name: trimmed, createdAt: new Date().toISOString() };
+    data.folders.push(folder);
+    this.writeData(data);
+    return folder;
+  }
+
+  deleteFolder(id) {
+    const data = this.readData();
+    // Disallow deletion if any project is assigned to this folder
+    const inUse = data.projects.some(p => p.folderId === id);
+    if (inUse) return false;
+    const nextFolders = data.folders.filter(f => f.id !== id);
+    const changed = nextFolders.length !== data.folders.length;
+    if (changed) {
+      data.folders = nextFolders;
+      this.writeData(data);
+    }
+    return changed;
+  }
+
+  generateFolderId() {
+    return 'f_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
   }
 }
 
