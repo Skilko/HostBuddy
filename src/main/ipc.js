@@ -407,11 +407,11 @@ function initIpc(ipcMain, store, app, BrowserWindow) {
   });
 
   ipcMain.handle('projects:create', (event, payload) => {
-    const { title, description, iconBase64, code, offline, folderId } = payload || {};
+    const { title, description, iconBase64, code, offline } = payload || {};
     if (!title || !code) {
       throw new Error('Title and Code are required.');
     }
-    return store.create({ title, description: description || '', iconBase64: iconBase64 || null, code, offline: !!offline, folderId: folderId || null });
+    return store.create({ title, description: description || '', iconBase64: iconBase64 || null, code, offline: !!offline });
   });
 
   ipcMain.handle('projects:update', (event, id, updates) => {
@@ -420,19 +420,6 @@ function initIpc(ipcMain, store, app, BrowserWindow) {
 
   ipcMain.handle('projects:delete', (event, id) => {
     return store.delete(id);
-  });
-
-  // --- Folders ---
-  ipcMain.handle('folders:list', () => {
-    return store.getFolders();
-  });
-
-  ipcMain.handle('folders:create', (event, name) => {
-    return store.createFolder(name);
-  });
-
-  ipcMain.handle('folders:delete', (event, id) => {
-    return store.deleteFolder(id);
   });
 
   ipcMain.handle('projects:run', async (event, id) => {
@@ -525,6 +512,24 @@ function initIpc(ipcMain, store, app, BrowserWindow) {
       await runner.loadURL(dataUrl);
       return true;
     }
+  });
+
+  // ---- Folder management ----
+  ipcMain.handle('folders:list', () => {
+    return store.getFolders();
+  });
+
+  ipcMain.handle('folders:create', (event, payload) => {
+    const name = payload && payload.name ? String(payload.name).slice(0, 120) : 'New Folder';
+    return store.createFolder({ name });
+  });
+
+  ipcMain.handle('folders:rename', (event, id, name) => {
+    return store.renameFolder(id, String(name || ''));
+  });
+
+  ipcMain.handle('folders:delete', (event, id) => {
+    return store.deleteFolder(id);
   });
 
   // --- Export / Import helpers ---

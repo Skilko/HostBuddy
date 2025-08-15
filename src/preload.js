@@ -10,7 +10,8 @@ contextBridge.exposeInMainWorld('api', {
   importProjects: () => ipcRenderer.invoke('projects:import'),
   openFeedback: () => ipcRenderer.invoke('app:openFeedback'),
   listFolders: () => ipcRenderer.invoke('folders:list'),
-  createFolder: (name) => ipcRenderer.invoke('folders:create', name),
+  createFolder: (name) => ipcRenderer.invoke('folders:create', { name }),
+  renameFolder: (id, name) => ipcRenderer.invoke('folders:rename', id, name),
   deleteFolder: (id) => ipcRenderer.invoke('folders:delete', id)
 });
 

@@ -42,10 +42,23 @@ h1 { font-size: 18px; margin: 0; }
   border-radius: 10px;
   font-weight: 600;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
 }
 .primary:hover { filter: brightness(1.05); }
 
-.content { padding: 24px; }
+.content { padding: 24px; display:flex; gap:16px; align-items:flex-start; }
+.sidebar { width: 220px; flex-shrink: 0; background: rgba(17, 24, 39, 0.6); border: 1px solid var(--border); border-radius: 12px; padding: 12px; position: sticky; top: 80px; max-height: calc(100vh - 120px); overflow: auto; }
+.sidebar-header { display:flex; align-items:center; justify-content: space-between; margin-bottom: 8px; }
+.sidebar h3 { margin: 0; font-size: 14px; color: var(--muted); }
+.folders { display: grid; gap: 6px; }
+.folder { display:flex; align-items:center; justify-content: space-between; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; background: rgba(255,255,255,0.02); }
+.folder.active { border-color: var(--accent); background: rgba(79, 70, 229, 0.1); }
+.folder .name { font-size: 13px; }
+.folder .controls { display:flex; gap: 6px; }
+.edit-hidden .edit-controls { display: none !important; }
+.drop-target { outline: 2px dashed rgba(79, 70, 229, 0.6); }
+.main { flex: 1; min-width: 0; }
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -63,8 +76,8 @@ h1 { font-size: 18px; margin: 0; }
 .title { font-weight: 700; font-size: 16px; margin: 0; }
 .desc { color: var(--muted); font-size: 13px; margin: 0; }
 .card .actions { display: flex; gap: 8px; margin-top: 8px; }
-.btn { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; }
-.btn svg { width: 18px; height: 18px; display: block; }
+.btn { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; display: inline-flex; align-items: center; }
+.btn svg, .primary svg { width: 18px; height: 18px; display: block; }
 .btn.run { border-color: var(--accent); color: white; background: linear-gradient(135deg, var(--accent), #7c3aed); }
 .btn.delete { border-color: #3f1f1f; color: #fecaca; background: #1f0f0f; }
 

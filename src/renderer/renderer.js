@@ -1,10 +1,13 @@
 const grid = document.getElementById('projectsGrid');
 const empty = document.getElementById('emptyState');
+const foldersList = document.getElementById('foldersList');
+const btnAddFolder = document.getElementById('btnAddFolder');
 const btnNew = document.getElementById('btnNew');
 const btnGettingStarted = document.getElementById('btnGettingStarted');
 const btnNew2 = document.getElementById('btnNew2');
 const btnFeedback = document.getElementById('btnFeedback');
 const btnImport = document.getElementById('btnImport');
+const btnToggleEdit = document.getElementById('btnToggleEdit');
 const modal = document.getElementById('modal');
 const form = document.getElementById('projectForm');
 const btnCancel = document.getElementById('btnCancel');
@@ -20,22 +23,17 @@ const btnCloseGs = document.getElementById('btnCloseGs');
 const btnCopyPrompt = document.getElementById('btnCopyPrompt');
 const promptTemplate = document.getElementById('promptTemplate');
 const loadingOverlay = document.getElementById('loadingOverlay');
-const folderFilter = document.getElementById('folderFilter');
-const folderSelect = document.getElementById('folderSelect');
-const btnManageFolders = document.getElementById('btnManageFolders');
-const foldersModal = document.getElementById('foldersModal');
-const foldersList = document.getElementById('foldersList');
+const folderModal = document.getElementById('folderModal');
+const folderForm = document.getElementById('folderForm');
 const folderNameInput = document.getElementById('folderNameInput');
-const btnAddFolder = document.getElementById('btnAddFolder');
-const btnCloseFolders = document.getElementById('btnCloseFolders');
+const btnCancelFolder = document.getElementById('btnCancelFolder');
 
 // Default icon used when a project has no uploaded icon
 const DEFAULT_APP_ICON = '../../assets/default-app.png';
 
 let iconBase64 = null;
 let editProjectId = null;
-let cachedFolders = [];
-let cachedProjects = [];
+let selectedFolderId = null; // null means "All"
 
 function createLucideIcon(name) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -73,6 +71,26 @@ function createLucideIcon(name) {
       svg.appendChild(p('M10 11v6'));
       svg.appendChild(p('M14 11v6'));
       svg.appendChild(p('M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2'));
+      break;
+    }
+    case 'plus': {
+      svg.appendChild(p('M12 5v14'));
+      svg.appendChild(p('M5 12h14'));
+      break;
+    }
+    case 'feedback': {
+      svg.appendChild(p('M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z'));
+      break;
+    }
+    case 'book-open': {
+      svg.appendChild(p('M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z'));
+      svg.appendChild(p('M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z'));
+      break;
+    }
+    case 'import': {
+      svg.appendChild(p('M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'));
+      svg.appendChild(pl('7 10 12 15 17 10'));
+      svg.appendChild(p('M12 15V3'));
       break;
     }
   }
@@ -123,7 +141,6 @@ function openCreateModal() {
   form.reset();
   iconBase64 = null;
   if (offlineEl) offlineEl.checked = false;
-  if (folderSelect) folderSelect.value = '';
   showModal();
 }
 
@@ -143,28 +160,32 @@ function openEditModal(project) {
   iconEl.value = '';
   iconBase64 = null;
   if (offlineEl) offlineEl.checked = !!project.offline;
-  if (folderSelect) folderSelect.value = project.folderId || '';
   showModal();
   updateLineNumbers();
 }
 
 async function fetchAndRender() {
-  const projects = await window.api.listProjects();
-  cachedProjects = projects || [];
+  const [projects, folders] = await Promise.all([
+    window.api.listProjects(),
+    window.api.listFolders()
+  ]);
+  renderFolders(folders, projects);
+  const visibleProjects = selectedFolderId ? projects.filter(p => p.folderId === selectedFolderId) : projects;
   grid.innerHTML = '';
-  // Apply folder filter
-  const selectedFolder = folderFilter ? folderFilter.value : 'all';
-  const filtered = (selectedFolder && selectedFolder !== 'all')
-    ? projects.filter(p => (p.folderId || '') === selectedFolder)
-    : projects;
-  if (!filtered || filtered.length === 0) {
+  if (!visibleProjects || visibleProjects.length === 0) {
     empty.classList.remove('hidden');
     return;
   }
   empty.classList.add('hidden');
-  for (const p of filtered) {
+  for (const p of visibleProjects) {
     const card = document.createElement('div');
     card.className = 'card';
+    card.draggable = true;
+    card.dataset.projectId = p.id;
+    card.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', p.id);
+      e.dataTransfer.effectAllowed = 'move';
+    });
     const avatar = document.createElement('img');
     avatar.className = 'avatar';
     avatar.alt = '';
@@ -185,9 +206,7 @@ async function fetchAndRender() {
     const actions = document.createElement('div'); actions.className = 'actions';
     const runBtn = document.createElement('button'); runBtn.className = 'btn run'; runBtn.setAttribute('aria-label', 'Run'); runBtn.title = 'Run'; runBtn.appendChild(createLucideIcon('play'));
     runBtn.onclick = async () => {
-      const previousText = runBtn.textContent;
       runBtn.disabled = true;
-      runBtn.textContent = 'Loading…';
       if (loadingOverlay) loadingOverlay.classList.remove('hidden');
       try {
         await window.api.runProject(p.id);
@@ -195,11 +214,10 @@ async function fetchAndRender() {
         alert('Failed to run project. ' + (err && err.message ? err.message : ''));
       } finally {
         runBtn.disabled = false;
-        runBtn.textContent = previousText;
         if (loadingOverlay) loadingOverlay.classList.add('hidden');
       }
     };
-    const editBtn = document.createElement('button'); editBtn.className = 'btn'; editBtn.setAttribute('aria-label', 'Edit'); editBtn.title = 'Edit'; editBtn.appendChild(createLucideIcon('edit'));
+    const editBtn = document.createElement('button'); editBtn.className = 'btn edit-controls'; editBtn.setAttribute('aria-label', 'Edit'); editBtn.title = 'Edit'; editBtn.appendChild(createLucideIcon('edit'));
     editBtn.onclick = () => openEditModal(p);
     const exportBtn = document.createElement('button'); exportBtn.className = 'btn'; exportBtn.setAttribute('aria-label', 'Export'); exportBtn.title = 'Export'; exportBtn.appendChild(createLucideIcon('upload'));
     exportBtn.onclick = async () => {
@@ -209,7 +227,7 @@ async function fetchAndRender() {
         alert('Export failed.');
       }
     };
-    const deleteBtn = document.createElement('button'); deleteBtn.className = 'btn delete'; deleteBtn.setAttribute('aria-label', 'Delete'); deleteBtn.title = 'Delete'; deleteBtn.appendChild(createLucideIcon('trash'));
+    const deleteBtn = document.createElement('button'); deleteBtn.className = 'btn delete edit-controls'; deleteBtn.setAttribute('aria-label', 'Delete'); deleteBtn.title = 'Delete'; deleteBtn.appendChild(createLucideIcon('trash'));
     deleteBtn.onclick = async () => {
       if (confirm(`Delete "${p.title}"? This cannot be undone.`)) {
         await window.api.deleteProject(p.id);
@@ -219,6 +237,62 @@ async function fetchAndRender() {
     actions.appendChild(runBtn); actions.appendChild(editBtn); actions.appendChild(exportBtn); actions.appendChild(deleteBtn);
     card.appendChild(row); card.appendChild(actions);
     grid.appendChild(card);
+  }
+}
+
+function renderFolders(folders, projects) {
+  if (!foldersList) return;
+  foldersList.innerHTML = '';
+  const allItem = document.createElement('div');
+  allItem.className = 'folder' + (!selectedFolderId ? ' active' : '');
+  const nameSpan = document.createElement('span'); nameSpan.className = 'name'; nameSpan.textContent = 'All Projects';
+  allItem.appendChild(nameSpan);
+  allItem.addEventListener('click', () => { selectedFolderId = null; fetchAndRender(); });
+  // Allow drop to unassign
+  allItem.addEventListener('dragover', (e) => { e.preventDefault(); allItem.classList.add('drop-target'); });
+  allItem.addEventListener('dragleave', () => allItem.classList.remove('drop-target'));
+  allItem.addEventListener('drop', async (e) => {
+    e.preventDefault(); allItem.classList.remove('drop-target');
+    const projectId = e.dataTransfer.getData('text/plain');
+    if (!projectId) return;
+    await window.api.updateProject(projectId, { folderId: null });
+    fetchAndRender();
+  });
+  foldersList.appendChild(allItem);
+  for (const f of folders) {
+    const item = document.createElement('div');
+    item.className = 'folder' + (selectedFolderId === f.id ? ' active' : '');
+    const nm = document.createElement('span'); nm.className = 'name'; nm.textContent = f.name || 'Folder';
+    const ctr = document.createElement('span'); ctr.className = 'controls edit-controls';
+    const renameBtn = document.createElement('button'); renameBtn.className = 'btn'; renameBtn.setAttribute('aria-label', 'Rename'); renameBtn.title = 'Rename'; renameBtn.appendChild(createLucideIcon('edit'));
+    renameBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const next = prompt('Folder name', f.name || '');
+      if (next && next.trim()) { await window.api.renameFolder(f.id, next.trim()); fetchAndRender(); }
+    });
+    const delBtn = document.createElement('button'); delBtn.className = 'btn'; delBtn.setAttribute('aria-label', 'Delete'); delBtn.title = 'Delete'; delBtn.appendChild(createLucideIcon('trash'));
+    delBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (confirm('Delete this folder? Projects will remain, unassigned.')) {
+        await window.api.deleteFolder(f.id);
+        if (selectedFolderId === f.id) selectedFolderId = null;
+        fetchAndRender();
+      }
+    });
+    ctr.appendChild(renameBtn); ctr.appendChild(delBtn);
+    item.appendChild(nm); item.appendChild(ctr);
+    item.addEventListener('click', () => { selectedFolderId = f.id; fetchAndRender(); });
+    // Drag/drop target
+    item.addEventListener('dragover', (e) => { e.preventDefault(); item.classList.add('drop-target'); });
+    item.addEventListener('dragleave', () => item.classList.remove('drop-target'));
+    item.addEventListener('drop', async (e) => {
+      e.preventDefault(); item.classList.remove('drop-target');
+      const projectId = e.dataTransfer.getData('text/plain');
+      if (!projectId) return;
+      await window.api.updateProject(projectId, { folderId: f.id });
+      fetchAndRender();
+    });
+    foldersList.appendChild(item);
   }
 }
 
@@ -269,6 +343,25 @@ btnCopyPrompt && btnCopyPrompt.addEventListener('click', async () => {
   } catch {}
 });
 
+// Add icons to header buttons dynamically using the createLucideIcon function
+function addIconToButton(button, iconName) {
+  if (!button) return;
+  const icon = createLucideIcon(iconName);
+  icon.setAttribute('width', '18');
+  icon.setAttribute('height', '18');
+  icon.style.marginRight = '6px';
+  button.prepend(icon);
+}
+
+// Apply icons to header buttons
+addIconToButton(btnFeedback, 'feedback');
+addIconToButton(btnGettingStarted, 'book-open');
+addIconToButton(btnImport, 'import');
+addIconToButton(btnToggleEdit, 'edit');
+addIconToButton(btnNew, 'plus');
+addIconToButton(btnNew2, 'plus');
+addIconToButton(document.getElementById('btnImport2'), 'import');
+
 btnFeedback && btnFeedback.addEventListener('click', async () => {
   try {
     await window.api.openFeedback();
@@ -288,98 +381,43 @@ btnImport && btnImport.addEventListener('click', async () => {
   }
 });
 
-async function loadFolders() {
-  try {
-    const folders = await window.api.listFolders();
-    cachedFolders = Array.isArray(folders) ? folders : [];
-    // Populate header filter
-    if (folderFilter) {
-      const current = folderFilter.value || 'all';
-      folderFilter.innerHTML = '';
-      const optAll = document.createElement('option'); optAll.value = 'all'; optAll.textContent = 'All projects'; folderFilter.appendChild(optAll);
-      for (const f of cachedFolders) {
-        const opt = document.createElement('option');
-        opt.value = f.id; opt.textContent = f.name;
-        folderFilter.appendChild(opt);
-      }
-      // restore selection if still valid
-      const hasCurrent = current === 'all' || cachedFolders.some(f => f.id === current);
-      folderFilter.value = hasCurrent ? current : 'all';
-    }
-    // Populate project form select
-    if (folderSelect) {
-      const selected = folderSelect.value || '';
-      folderSelect.innerHTML = '';
-      const optNone = document.createElement('option'); optNone.value = ''; optNone.textContent = 'None'; folderSelect.appendChild(optNone);
-      for (const f of cachedFolders) {
-        const opt = document.createElement('option'); opt.value = f.id; opt.textContent = f.name; folderSelect.appendChild(opt);
-      }
-      if (selected && cachedFolders.some(f => f.id === selected)) {
-        folderSelect.value = selected;
-      }
-    }
-    // Render folders list in modal if open
-    renderFoldersList();
-  } catch (_) {
-    // ignore
+function openFolderModal() {
+  if (!folderModal) return;
+  folderModal.classList.remove('hidden');
+  if (folderNameInput) {
+    folderNameInput.value = '';
+    setTimeout(() => folderNameInput.focus(), 0);
   }
 }
 
-function renderFoldersList() {
-  if (!foldersList) return;
-  foldersList.innerHTML = '';
-  for (const f of cachedFolders) {
-    const row = document.createElement('div');
-    row.style.display = 'flex';
-    row.style.gap = '8px';
-    row.style.alignItems = 'center';
-    row.style.justifyContent = 'space-between';
-    const left = document.createElement('div');
-    left.textContent = f.name;
-    const count = cachedProjects.filter(p => p.folderId === f.id).length;
-    const right = document.createElement('div');
-    const meta = document.createElement('span'); meta.style.color = '#9ca3af'; meta.style.fontSize = '12px'; meta.textContent = count + (count === 1 ? ' project' : ' projects');
-    const del = document.createElement('button'); del.className = 'btn delete'; del.textContent = 'Delete';
-    del.disabled = count > 0;
-    del.title = count > 0 ? 'Remove projects from this folder first' : 'Delete folder';
-    del.onclick = async () => {
-      try {
-        const ok = await window.api.deleteFolder(f.id);
-        if (!ok) {
-          alert('Folder is not empty. Move or remove projects first.');
-          return;
-        }
-        await loadFolders();
-        await fetchAndRender();
-      } catch (e) {
-        alert('Could not delete folder.');
-      }
-    };
-    right.style.display = 'flex'; right.style.gap = '8px'; right.style.alignItems = 'center';
-    right.appendChild(meta); right.appendChild(del);
-    row.appendChild(left); row.appendChild(right);
-    foldersList.appendChild(row);
-  }
+function closeFolderModal() {
+  if (!folderModal) return;
+  folderModal.classList.add('hidden');
 }
 
-function openFoldersModal() { if (foldersModal) { foldersModal.classList.remove('hidden'); renderFoldersList(); } }
-function closeFoldersModal() { if (foldersModal) foldersModal.classList.add('hidden'); }
+btnAddFolder && btnAddFolder.addEventListener('click', () => openFolderModal());
 
-btnManageFolders && btnManageFolders.addEventListener('click', async () => { await loadFolders(); openFoldersModal(); });
-btnCloseFolders && btnCloseFolders.addEventListener('click', closeFoldersModal);
-btnAddFolder && btnAddFolder.addEventListener('click', async () => {
-  const name = (folderNameInput && folderNameInput.value || '').trim();
-  if (!name) { alert('Enter a folder name'); return; }
+// Ensure the add folder button uses a consistent icon
+if (btnAddFolder) {
+  btnAddFolder.innerHTML = '';
+  btnAddFolder.appendChild(createLucideIcon('plus'));
+}
+
+btnCancelFolder && btnCancelFolder.addEventListener('click', () => closeFolderModal());
+
+folderForm && folderForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const raw = (folderNameInput && folderNameInput.value) || '';
+  const name = raw.trim();
+  if (!name) { return; }
   try {
     await window.api.createFolder(name);
-    if (folderNameInput) folderNameInput.value = '';
-    await loadFolders();
+    closeFolderModal();
+    await fetchAndRender();
   } catch (e) {
-    alert('Could not create folder. It may already exist.');
+    alert('Could not create folder.');
   }
 });
-
-folderFilter && folderFilter.addEventListener('change', async () => { await fetchAndRender(); });
 
 async function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -430,19 +468,30 @@ form.addEventListener('submit', async (e) => {
   const title = titleEl.value.trim();
   const description = descEl.value.trim();
   const code = codeEl.value;
-  const folderId = folderSelect ? (folderSelect.value || null) : null;
   if (!title || !code) { alert('Please provide Title and HTML/React code.'); return; }
   if (editProjectId) {
-    const updates = { title, description, code, offline: !!(offlineEl && offlineEl.checked), folderId };
+    const updates = { title, description, code, offline: !!(offlineEl && offlineEl.checked) };
     if (iconBase64) updates.iconBase64 = iconBase64;
     await window.api.updateProject(editProjectId, updates);
   } else {
-    await window.api.createProject({ title, description, iconBase64, code, offline: !!(offlineEl && offlineEl.checked), folderId });
+    await window.api.createProject({ title, description, iconBase64, code, offline: !!(offlineEl && offlineEl.checked) });
   }
   hideModal();
   await fetchAndRender();
 });
 
-loadFolders().then(fetchAndRender);
+fetchAndRender();
+
+// Edit controls visibility toggle (default hidden)
+document.body.classList.add('edit-hidden');
+btnToggleEdit && btnToggleEdit.addEventListener('click', () => {
+  if (document.body.classList.contains('edit-hidden')) {
+    document.body.classList.remove('edit-hidden');
+    btnToggleEdit.textContent = 'Done';
+  } else {
+    document.body.classList.add('edit-hidden');
+    btnToggleEdit.textContent = 'Edit';
+  }
+});
 
 

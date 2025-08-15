@@ -16,27 +16,33 @@
         </div>
       </div>
       <div style="display:flex; gap:10px; align-items:center;">
-        <select id="folderFilter" class="btn" style="min-width:180px">
-          <option value="all">All projects</option>
-        </select>
-        <button id="btnManageFolders" class="btn">Folders</button>
         <button id="btnFeedback" class="btn">Feedback</button>
         <button id="btnGettingStarted" class="btn" style="background:#0b1022;border-color:#2c3657;">Getting Started</button>
         <button id="btnImport" class="btn">Import</button>
+        <button id="btnToggleEdit" class="btn" title="Toggle edit controls" aria-label="Toggle edit controls">Edit</button>
         <button id="btnNew" class="primary">New Project</button>
       </div>
     </header>
 
     <main class="content">
-      <div id="projectsGrid" class="grid"></div>
-      <div id="emptyState" class="empty hidden">
-        <h2>No projects yet</h2>
-        <p>Create your first project to get started.</p>
-        <button id="btnNew2" class="primary">Create Project</button>
-        <div style="margin-top:10px">
-          <button id="btnImport2" class="btn">Import Existing</button>
+      <aside id="foldersSidebar" class="sidebar" aria-label="Folders">
+        <div class="sidebar-header">
+          <h3>Folders</h3>
+          <button id="btnAddFolder" class="btn" title="Add Folder" aria-label="Add Folder"></button>
         </div>
-      </div>
+        <nav id="foldersList" class="folders"></nav>
+      </aside>
+      <section class="main">
+        <div id="projectsGrid" class="grid"></div>
+        <div id="emptyState" class="empty hidden">
+          <h2>No projects yet</h2>
+          <p>Create your first project to get started.</p>
+          <button id="btnNew2" class="primary">Create Project</button>
+          <div style="margin-top:10px">
+            <button id="btnImport2" class="btn">Import Existing</button>
+          </div>
+        </div>
+      </section>
     </main>
 
     <!-- Global loading overlay -->
@@ -60,11 +66,6 @@
             </label>
             <label>Description
               <textarea id="description" placeholder="What does it do?"></textarea>
-            </label>
-            <label>Folder (optional)
-              <select id="folderSelect">
-                <option value="">None</option>
-              </select>
             </label>
             <label>Picture / Icon (optional)
               <input id="icon" type="file" accept="image/*" />
@@ -166,24 +167,25 @@ Output:
       </div>
     </div>
 
-    <div id="foldersModal" class="modal hidden" role="dialog" aria-modal="true">
+    <div id="folderModal" class="modal hidden" role="dialog" aria-modal="true">
       <div class="modal-content">
         <div class="modal-header">
-          <h2>Folders</h2>
-          <p class="modal-subtitle">Create folders to organise your projects. Deleting a folder requires it to be empty.</p>
+          <h2>Create Folder</h2>
+          <p class="modal-subtitle">Add a folder to organize your projects</p>
         </div>
-        <div class="modal-body">
-          <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
-            <input id="folderNameInput" type="text" placeholder="New folder name" style="flex:1;" />
-            <button id="btnAddFolder" class="primary" type="button">Add</button>
+        <form id="folderForm">
+          <div class="modal-body">
+            <label>Folder name
+              <input id="folderNameInput" type="text" placeholder="e.g. Work" required />
+            </label>
           </div>
-          <div id="foldersList" style="display:grid; gap:8px;"></div>
-        </div>
-        <div class="modal-footer">
-          <div class="actions">
-            <button id="btnCloseFolders" type="button">Close</button>
+          <div class="modal-footer">
+            <div class="actions">
+              <button type="button" id="btnCancelFolder">Cancel</button>
+              <button type="submit" id="btnSaveFolder" class="primary">Create</button>
+            </div>
           </div>
-        </div>
+        </form>
       </div>
     </div>
 
