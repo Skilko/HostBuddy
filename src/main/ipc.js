@@ -514,6 +514,89 @@ function initIpc(ipcMain, store, app, BrowserWindow) {
     }
   });
 
+  // --- Export / Import helpers ---
+  function slugifyBase(name) {
+    const base = String(name || 'hostbuddy-project')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 60) || 'hostbuddy-project';
+    return base;
+  }
+
+  function shapeProjectForExport(project) {
+    return {
+      title: project.title || '',
+      description: project.description || '',
+      iconBase64: typeof project.iconBase64 === 'string' ? project.iconBase64 : null,
+      code: project.code || ''
+    };
+  }
+
+  function coerceImportedProject(raw) {
+    const title = raw && raw.title ? String(raw.title) : '';
+    const code = raw && raw.code ? String(raw.code) : '';
+    if (!title || !code) return null;
+    const description = raw && raw.description ? String(raw.description) : '';
+    const iconBase64 = raw && typeof raw.iconBase64 === 'string' && /^data:image\//.test(raw.iconBase64)
+      ? raw.iconBase64
+      : null;
+    return { title, description, iconBase64, code, offline: false };
+  }
+
+  ipcMain.handle('projects:export', async (event, id) => {
+    const project = store.getById(id);
+    if (!project) throw new Error('Project not found');
+    const base = slugifyBase(project.title);
+    const { canceled, filePath } = await dialog.showSaveDialog({
+      title: 'Export Project',
+      defaultPath: `${base}.hbproj`,
+      filters: [
+        { name: 'HostBuddy Project', extensions: ['hbproj', 'json'] }
+      ]
+    });
+    if (canceled || !filePath) return false;
+    const payload = {
+      app: 'HostBuddy',
+      kind: 'project',
+      version: 1,
+      project: shapeProjectForExport(project)
+    };
+    fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), 'utf8');
+    return true;
+  });
+
+  ipcMain.handle('projects:import', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      title: 'Import Project(s)',
+      properties: ['openFile', 'multiSelections'],
+      filters: [
+        { name: 'HostBuddy Project', extensions: ['hbproj', 'json'] },
+        { name: 'All Files', extensions: ['*'] }
+      ]
+    });
+    if (canceled || !filePaths || filePaths.length === 0) return [];
+    const results = [];
+    for (const fp of filePaths) {
+      try {
+        const raw = fs.readFileSync(fp, 'utf8');
+        const data = JSON.parse(raw);
+        const maybeList = Array.isArray(data?.projects) ? data.projects :
+          (data && data.app === 'HostBuddy' && (data.kind === 'project' || data.kind === 'export') && data.project ? [data.project] :
+          (Array.isArray(data) ? data : [data]));
+        for (const item of maybeList) {
+          const shaped = coerceImportedProject(item || {});
+          if (!shaped) continue;
+          const created = store.create(shaped);
+          results.push({ file: fp, id: created.id, title: created.title });
+        }
+      } catch (_) {
+        // ignore bad files, continue others
+      }
+    }
+    return results;
+  });
+
   ipcMain.handle('app:openFeedback', async () => {
     const { response } = await dialog.showMessageBox({
       type: 'question',

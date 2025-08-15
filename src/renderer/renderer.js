@@ -4,6 +4,7 @@ const btnNew = document.getElementById('btnNew');
 const btnGettingStarted = document.getElementById('btnGettingStarted');
 const btnNew2 = document.getElementById('btnNew2');
 const btnFeedback = document.getElementById('btnFeedback');
+const btnImport = document.getElementById('btnImport');
 const modal = document.getElementById('modal');
 const form = document.getElementById('projectForm');
 const btnCancel = document.getElementById('btnCancel');
@@ -140,6 +141,14 @@ async function fetchAndRender() {
     };
     const editBtn = document.createElement('button'); editBtn.className = 'btn'; editBtn.textContent = 'Edit';
     editBtn.onclick = () => openEditModal(p);
+    const exportBtn = document.createElement('button'); exportBtn.className = 'btn'; exportBtn.textContent = 'Export';
+    exportBtn.onclick = async () => {
+      try {
+        await window.api.exportProject(p.id);
+      } catch (e) {
+        alert('Export failed.');
+      }
+    };
     const deleteBtn = document.createElement('button'); deleteBtn.className = 'btn delete'; deleteBtn.textContent = 'Delete';
     deleteBtn.onclick = async () => {
       if (confirm(`Delete "${p.title}"? This cannot be undone.`)) {
@@ -147,7 +156,7 @@ async function fetchAndRender() {
         await fetchAndRender();
       }
     };
-    actions.appendChild(runBtn); actions.appendChild(editBtn); actions.appendChild(deleteBtn);
+    actions.appendChild(runBtn); actions.appendChild(editBtn); actions.appendChild(exportBtn); actions.appendChild(deleteBtn);
     card.appendChild(row); card.appendChild(actions);
     grid.appendChild(card);
   }
@@ -156,6 +165,16 @@ async function fetchAndRender() {
 btnNew.addEventListener('click', () => openCreateModal());
 btnGettingStarted.addEventListener('click', () => openGettingStarted());
 btnNew2.addEventListener('click', () => openCreateModal());
+document.getElementById('btnImport2') && document.getElementById('btnImport2').addEventListener('click', async () => {
+  try {
+    const res = await window.api.importProjects();
+    if (res && res.length) {
+      await fetchAndRender();
+    }
+  } catch (e) {
+    alert('Import failed.');
+  }
+});
 btnCancel.addEventListener('click', hideModal);
 
 // Add event listeners for line numbers functionality
@@ -195,6 +214,17 @@ btnFeedback && btnFeedback.addEventListener('click', async () => {
     await window.api.openFeedback();
   } catch (e) {
     alert('Could not open feedback page.');
+  }
+});
+
+btnImport && btnImport.addEventListener('click', async () => {
+  try {
+    const res = await window.api.importProjects();
+    if (res && res.length) {
+      await fetchAndRender();
+    }
+  } catch (e) {
+    alert('Import failed.');
   }
 });
 
