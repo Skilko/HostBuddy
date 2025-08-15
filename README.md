@@ -11,6 +11,15 @@ HostBuddy lets you paste either a complete HTML snippet or a single‑file React
 - **Offline mode (per project)**: Persist dependencies for a project so it can run later without internet.
 - **Zero Node integration in UI**: Renderer runs with `nodeIntegration: false`, `contextIsolation: true`, `sandbox: true`.
 - **Simple project storage**: Projects saved as JSON under your user data directory.
+- **Import/Export projects**: Export a project to a portable `.hbproj` (JSON) file and import one or multiple projects back into the app.
+- **Folders and drag‑and‑drop**: Create, rename, and delete folders; drag project cards into folders to organize. Drop onto "All Projects" to unassign.
+- **Improved creation flow & accessibility**: Step‑by‑step modal for creating projects, icon buttons with `aria-label`s, and better keyboard/assistive support.
+
+### What's new since v0.1.1
+- Project import/export via `.hbproj` files (multi‑file import supported).
+- Folders sidebar: create/rename/delete and drag‑and‑drop project assignment.
+- Revamped project creation modal with a guided step layout.
+- Accessibility improvements to action buttons and dialogs.
 
 ## Quick Start (Development)
 ### Prerequisites
@@ -37,6 +46,15 @@ Jest runs in a Node environment. Current tests cover the `ProjectsStore`.
 3. Optional: enable "Offline use" to persist dependencies locally for offline runs.
 4. Save, then click "Run" on a project card.
 
+### Organizing with folders
+- Use the Folders sidebar to **Add**, **Rename**, or **Delete** folders.
+- Drag project cards into a folder to assign them. Click a folder to filter the grid.
+- Drop a project onto "All Projects" to remove its folder assignment.
+
+### Importing and exporting projects
+- **Export**: On a project card, click Export to save a `.hbproj` (JSON) file you can share or back up.
+- **Import**: Click the top‑bar Import button and select one or more `.hbproj` or JSON files.
+
 ### Supported code and imports
 - HTML is rendered as provided. If your snippet lacks a full document, HostBuddy wraps it in a minimal HTML shell.
 - React components are bundled with `esbuild` at runtime.
@@ -47,6 +65,8 @@ Jest runs in a Node environment. Current tests cover the `ProjectsStore`.
 - **Main process** (`src/main/main.js`): Creates the window and initializes IPC.
 - **IPC handlers** (`src/main/ipc.js`):
   - Project CRUD: `projects:list|create|update|delete`
+  - Project import/export: `projects:import`, `projects:export` (reads/writes portable JSON `.hbproj`)
+  - Folder management: `folders:list`, `folders:create`, `folders:rename`, `folders:delete`
   - Run project: Detects HTML vs React. For React, prepares a temp or persistent project directory, installs dependencies via bundled `pnpm`, bundles with `esbuild`, then loads `index.html`. On failure, it logs and gracefully falls back to HTML rendering.
   - Feedback: Opens the project page in your browser.
 - **Preload** (`src/preload.js`): Exposes safe APIs to the renderer via `contextBridge`.
@@ -66,6 +86,7 @@ Jest runs in a Node environment. Current tests cover the `ProjectsStore`.
   - macOS: `~/Library/Application Support/HostBuddy`
   - Windows: `%APPDATA%/HostBuddy`
 - Projects are stored as JSON at `projects.json` under the directory above.
+- Exported projects: portable `.hbproj` (JSON) files you can re‑import.
 - React run logs (helpful for troubleshooting):
   - `last-react-run-error.log`
   - `last-react-run-debug.log`
