@@ -501,15 +501,24 @@ function initIpc(ipcMain, store, app, BrowserWindow) {
           });
         } catch (_) {}
         // Fallback gracefully to HTML so the user still sees something
+        const userBase = path.join(app.getPath('userData'), 'HostBuddy');
+        const tempBase = path.join(userBase, 'html-runs');
+        fs.mkdirSync(tempBase, { recursive: true });
+        const htmlDir = makeRunDir(tempBase);
         const html = ensureHtmlDocument(userCode);
-        const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
-        await runner.loadURL(dataUrl);
+        fs.writeFileSync(path.join(htmlDir, 'index.html'), html, 'utf8');
+        await runner.loadFile(path.join(htmlDir, 'index.html'));
         return true;
       }
     } else {
+      // Write HTML to temp file instead of using data URL to avoid size limits
+      const userBase = path.join(app.getPath('userData'), 'HostBuddy');
+      const tempBase = path.join(userBase, 'html-runs');
+      fs.mkdirSync(tempBase, { recursive: true });
+      const htmlDir = makeRunDir(tempBase);
       const html = ensureHtmlDocument(userCode);
-      const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
-      await runner.loadURL(dataUrl);
+      fs.writeFileSync(path.join(htmlDir, 'index.html'), html, 'utf8');
+      await runner.loadFile(path.join(htmlDir, 'index.html'));
       return true;
     }
   });
