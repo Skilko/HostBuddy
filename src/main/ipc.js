@@ -138,6 +138,50 @@ function augmentDependenciesFromCode(runDir, userCode) {
   fs.writeFileSync(pkgPath, JSON.stringify(pkgJson, null, 2));
 }
 
+function preprocessHtmlWithAttachments(html, attachments) {
+  if (!attachments || !Array.isArray(attachments) || attachments.length === 0) {
+    return html;
+  }
+  
+  let result = html;
+  
+  // Build a map of filename to data URI
+  const attachmentMap = {};
+  for (const att of attachments) {
+    if (att.filename && att.data) {
+      attachmentMap[att.filename] = att.data;
+    }
+  }
+  
+  // Replace src="filename" with src="data:..."
+  // Also handle src='filename' and src=filename
+  for (const [filename, dataUri] of Object.entries(attachmentMap)) {
+    // Escape special regex characters in filename
+    const escapedFilename = filename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    
+    // Match various src attribute formats
+    const patterns = [
+      new RegExp(`src=["']${escapedFilename}["']`, 'gi'),
+      new RegExp(`src=${escapedFilename}(?=[\\s>])`, 'gi'),
+      new RegExp(`href=["']${escapedFilename}["']`, 'gi'),
+      new RegExp(`href=${escapedFilename}(?=[\\s>])`, 'gi')
+    ];
+    
+    for (const pattern of patterns) {
+      result = result.replace(pattern, (match) => {
+        if (match.startsWith('src=')) {
+          return `src="${dataUri}"`;
+        } else if (match.startsWith('href=')) {
+          return `href="${dataUri}"`;
+        }
+        return match;
+      });
+    }
+  }
+  
+  return result;
+}
+
 function ensureHtmlDocument(userHtml) {
   const hasHtmlTags = /<html[\s\S]*<\/html>/i.test(userHtml);
   if (hasHtmlTags) return userHtml;
@@ -505,7 +549,8 @@ function initIpc(ipcMain, store, app, BrowserWindow) {
         const tempBase = path.join(userBase, 'html-runs');
         fs.mkdirSync(tempBase, { recursive: true });
         const htmlDir = makeRunDir(tempBase);
-        const html = ensureHtmlDocument(userCode);
+        const preprocessed = preprocessHtmlWithAttachments(userCode, project.attachments);
+        const html = ensureHtmlDocument(preprocessed);
         fs.writeFileSync(path.join(htmlDir, 'index.html'), html, 'utf8');
         await runner.loadFile(path.join(htmlDir, 'index.html'));
         return true;
@@ -516,7 +561,8 @@ function initIpc(ipcMain, store, app, BrowserWindow) {
       const tempBase = path.join(userBase, 'html-runs');
       fs.mkdirSync(tempBase, { recursive: true });
       const htmlDir = makeRunDir(tempBase);
-      const html = ensureHtmlDocument(userCode);
+      const preprocessed = preprocessHtmlWithAttachments(userCode, project.attachments);
+      const html = ensureHtmlDocument(preprocessed);
       fs.writeFileSync(path.join(htmlDir, 'index.html'), html, 'utf8');
       await runner.loadFile(path.join(htmlDir, 'index.html'));
       return true;
@@ -556,7 +602,8 @@ function initIpc(ipcMain, store, app, BrowserWindow) {
       title: project.title || '',
       description: project.description || '',
       iconBase64: typeof project.iconBase64 === 'string' ? project.iconBase64 : null,
-      code: project.code || ''
+      code: project.code || '',
+      attachments: Array.isArray(project.attachments) ? project.attachments : []
     };
   }
 
@@ -568,7 +615,21 @@ function initIpc(ipcMain, store, app, BrowserWindow) {
     const iconBase64 = raw && typeof raw.iconBase64 === 'string' && /^data:image\//.test(raw.iconBase64)
       ? raw.iconBase64
       : null;
-    return { title, description, iconBase64, code, offline: false };
+    
+    // Validate and sanitize attachments
+    let attachments = [];
+    if (Array.isArray(raw.attachments)) {
+      attachments = raw.attachments
+        .filter(att => att && typeof att === 'object')
+        .filter(att => att.filename && att.data && typeof att.filename === 'string' && typeof att.data === 'string')
+        .map(att => ({
+          filename: String(att.filename),
+          mimeType: att.mimeType && typeof att.mimeType === 'string' ? String(att.mimeType) : 'application/octet-stream',
+          data: String(att.data)
+        }));
+    }
+    
+    return { title, description, iconBase64, code, offline: false, attachments };
   }
 
   ipcMain.handle('projects:export', async (event, id) => {

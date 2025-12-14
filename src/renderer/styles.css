@@ -322,3 +322,51 @@ textarea.code:focus {
 .step-body label { margin: 0; }
 .hint { color: var(--muted); font-size: 12px; }
 .checkbox-row { display: flex; align-items: center; gap: 8px; }
+
+/* Attachments list */
+.attachments-list { 
+  display: grid; 
+  gap: 8px; 
+  margin-top: 10px; 
+}
+.attachment-item { 
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between; 
+  padding: 8px 10px; 
+  background: rgba(255,255,255,0.03); 
+  border: 1px solid var(--border); 
+  border-radius: 8px; 
+}
+.attachment-info { 
+  display: flex; 
+  align-items: center; 
+  gap: 8px; 
+  flex: 1; 
+  min-width: 0; 
+}
+.attachment-name { 
+  color: var(--text); 
+  font-size: 13px; 
+  overflow: hidden; 
+  text-overflow: ellipsis; 
+  white-space: nowrap; 
+}
+.attachment-size { 
+  color: var(--muted); 
+  font-size: 11px; 
+}
+.attachment-remove { 
+  padding: 4px 8px; 
+  border: 1px solid var(--border); 
+  background: transparent; 
+  color: var(--danger); 
+  cursor: pointer; 
+  border-radius: 6px; 
+  font-size: 12px; 
+  transition: all 0.2s ease; 
+}
+.attachment-remove:hover { 
+  background: rgba(239, 68, 68, 0.1); 
+  border-color: var(--danger); 
+}

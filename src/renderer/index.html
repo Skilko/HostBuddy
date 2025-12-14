@@ -103,6 +103,20 @@
               <div class="step">
                 <div class="step-header">
                   <div class="step-num">4</div>
+                  <div class="step-title">Attach files (optional)</div>
+                </div>
+                <div class="step-body">
+                  <label>Attach images, CSS, or JS files
+                    <input id="attachments" type="file" accept="image/*,.css,.js" multiple />
+                  </label>
+                  <div class="hint">These files will be embedded in your project and converted to data URIs at runtime.</div>
+                  <div id="attachmentsList" class="attachments-list"></div>
+                </div>
+              </div>
+
+              <div class="step">
+                <div class="step-header">
+                  <div class="step-num">5</div>
                   <div class="step-title">Set dependency mode</div>
                 </div>
                 <div class="step-body">
@@ -115,7 +129,7 @@
 
               <div class="step">
                 <div class="step-header">
-                  <div class="step-num">5</div>
+                  <div class="step-num">6</div>
                   <div class="step-title">Paste your code</div>
                 </div>
                 <div class="step-body">

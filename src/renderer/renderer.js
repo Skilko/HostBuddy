@@ -27,6 +27,8 @@ const folderModal = document.getElementById('folderModal');
 const folderForm = document.getElementById('folderForm');
 const folderNameInput = document.getElementById('folderNameInput');
 const btnCancelFolder = document.getElementById('btnCancelFolder');
+const attachmentsEl = document.getElementById('attachments');
+const attachmentsList = document.getElementById('attachmentsList');
 
 // Default icon used when a project has no uploaded icon
 const DEFAULT_APP_ICON = '../../assets/default-app.png';
@@ -34,6 +36,7 @@ const DEFAULT_APP_ICON = '../../assets/default-app.png';
 let iconBase64 = null;
 let editProjectId = null;
 let selectedFolderId = null; // null means "All"
+let projectAttachments = []; // Array of { filename, mimeType, data }
 
 function createLucideIcon(name) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -131,6 +134,8 @@ function hideModal() {
   form.reset(); 
   iconBase64 = null; 
   editProjectId = null; 
+  projectAttachments = [];
+  renderAttachmentsList();
   if (modalTitle) modalTitle.textContent = 'Create Project';
   updateLineNumbers();
 }
@@ -140,6 +145,8 @@ function openCreateModal() {
   if (modalTitle) modalTitle.textContent = 'Create Project';
   form.reset();
   iconBase64 = null;
+  projectAttachments = [];
+  renderAttachmentsList();
   if (offlineEl) offlineEl.checked = false;
   showModal();
 }
@@ -159,6 +166,8 @@ function openEditModal(project) {
   codeEl.value = project.code || '';
   iconEl.value = '';
   iconBase64 = null;
+  projectAttachments = Array.isArray(project.attachments) ? [...project.attachments] : [];
+  renderAttachmentsList();
   if (offlineEl) offlineEl.checked = !!project.offline;
   showModal();
   updateLineNumbers();
@@ -428,6 +437,73 @@ async function readFileAsDataUrl(file) {
   });
 }
 
+function formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function renderAttachmentsList() {
+  if (!attachmentsList) return;
+  attachmentsList.innerHTML = '';
+  
+  if (projectAttachments.length === 0) {
+    return;
+  }
+  
+  for (let i = 0; i < projectAttachments.length; i++) {
+    const att = projectAttachments[i];
+    const item = document.createElement('div');
+    item.className = 'attachment-item';
+    
+    const info = document.createElement('div');
+    info.className = 'attachment-info';
+    
+    const name = document.createElement('div');
+    name.className = 'attachment-name';
+    name.textContent = att.filename;
+    
+    const size = document.createElement('div');
+    size.className = 'attachment-size';
+    // Estimate size from base64 data
+    const estimatedBytes = att.data ? Math.round((att.data.length * 3) / 4) : 0;
+    size.textContent = formatFileSize(estimatedBytes);
+    
+    info.appendChild(name);
+    info.appendChild(size);
+    
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'attachment-remove';
+    removeBtn.textContent = 'Remove';
+    removeBtn.onclick = () => {
+      projectAttachments.splice(i, 1);
+      renderAttachmentsList();
+    };
+    
+    item.appendChild(info);
+    item.appendChild(removeBtn);
+    attachmentsList.appendChild(item);
+  }
+}
+
+async function handleAttachmentFiles(files) {
+  for (const file of files) {
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      projectAttachments.push({
+        filename: file.name,
+        mimeType: file.type || 'application/octet-stream',
+        data: dataUrl
+      });
+    } catch (err) {
+      console.error('Failed to read file:', file.name, err);
+      alert(`Failed to read file: ${file.name}`);
+    }
+  }
+  renderAttachmentsList();
+}
+
 async function normalizeImageToPng(file) {
   try {
     const bitmap = await createImageBitmap(file);
@@ -463,6 +539,14 @@ iconEl.addEventListener('change', async (e) => {
   }
 });
 
+attachmentsEl && attachmentsEl.addEventListener('change', async (e) => {
+  const files = e.target.files;
+  if (!files || files.length === 0) return;
+  await handleAttachmentFiles(Array.from(files));
+  // Clear input so same file can be added again if needed
+  e.target.value = '';
+});
+
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   const title = titleEl.value.trim();
@@ -470,11 +554,24 @@ form.addEventListener('submit', async (e) => {
   const code = codeEl.value;
   if (!title || !code) { alert('Please provide Title and HTML/React code.'); return; }
   if (editProjectId) {
-    const updates = { title, description, code, offline: !!(offlineEl && offlineEl.checked) };
+    const updates = { 
+      title, 
+      description, 
+      code, 
+      offline: !!(offlineEl && offlineEl.checked),
+      attachments: projectAttachments 
+    };
     if (iconBase64) updates.iconBase64 = iconBase64;
     await window.api.updateProject(editProjectId, updates);
   } else {
-    await window.api.createProject({ title, description, iconBase64, code, offline: !!(offlineEl && offlineEl.checked) });
+    await window.api.createProject({ 
+      title, 
+      description, 
+      iconBase64, 
+      code, 
+      offline: !!(offlineEl && offlineEl.checked),
+      attachments: projectAttachments
+    });
   }
   hideModal();
   await fetchAndRender();

@@ -59,10 +59,20 @@ class ProjectsStore {
     return this.readAll().find(p => p.id === id) || null;
   }
 
-  create({ title, description, iconBase64, code, offline }) {
+  create({ title, description, iconBase64, code, offline, attachments }) {
     const id = this.generateId();
     const now = new Date().toISOString();
-    const project = { id, title, description, iconBase64: iconBase64 || null, code, offline: !!offline, createdAt: now, updatedAt: now };
+    const project = { 
+      id, 
+      title, 
+      description, 
+      iconBase64: iconBase64 || null, 
+      code, 
+      offline: !!offline, 
+      attachments: Array.isArray(attachments) ? attachments : [],
+      createdAt: now, 
+      updatedAt: now 
+    };
     const projects = this.readAll();
     projects.push(project);
     this.writeAll(projects);
