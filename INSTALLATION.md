@@ -2,7 +2,7 @@
 
 This guide explains how to install and run the HostBuddy app from the provided distribution files on macOS (.dmg) and Windows (.exe).
 
-### What you’ll download
+### What you'll download
 - macOS: a `.dmg` disk image, e.g., `HostBuddy-0.1.0-arm64.dmg` (Apple Silicon) or `HostBuddy-0.1.0.dmg` (Intel x64)
 - Windows: an installer `.exe`, e.g., `HostBuddy Setup 0.1.0.exe`
 
@@ -10,7 +10,7 @@ This guide explains how to install and run the HostBuddy app from the provided d
 - macOS: a recent version of macOS on Apple Silicon or Intel. Use the `arm64` DMG on M1/M2/M3 Macs; use the Intel DMG on older Intel-based Macs.
 - Windows: Windows 10 or Windows 11, 64-bit.
 
-Note: Current distributions are unsigned. You may see macOS Gatekeeper or Windows SmartScreen warnings during first run.
+> **Note**: HostBuddy is currently distributed as an unsigned application. You will see security warnings on first launch. This is normal for unsigned apps. We're working on obtaining code signing certificates for future releases.
 
 ---
 
@@ -22,9 +22,9 @@ Note: Current distributions are unsigned. You may see macOS Gatekeeper or Window
 5. Launch HostBuddy from `Applications`.
 
 First launch on macOS (bypassing Gatekeeper for unsigned builds):
-- If you see a message like “HostBuddy can’t be opened because it is from an unidentified developer,” do one of the following:
+- If you see a message like "HostBuddy can't be opened because it is from an unidentified developer," do one of the following:
   - Control-click the `HostBuddy` app in `Applications`, choose Open, then click Open in the dialog; or
-  - Go to System Settings → Privacy & Security, scroll to Security, and click “Open Anyway” for HostBuddy; then click Open on the next prompt.
+  - Go to System Settings → Privacy & Security, scroll to Security, and click "Open Anyway" for HostBuddy; then click Open on the next prompt.
 
 Apple Silicon vs Intel DMGs:
 - On Apple Silicon (M1/M2/M3), prefer the `arm64` DMG.
@@ -43,10 +43,10 @@ Uninstalling on macOS:
 4. Launch HostBuddy from the Start Menu (or Desktop shortcut, if created).
 
 SmartScreen (unsigned builds):
-- If Windows SmartScreen warns you, click “More info,” then “Run anyway.”
+- If Windows SmartScreen warns you, click "More info," then "Run anyway."
 
 Uninstalling on Windows:
-- Go to Settings → Apps → Installed apps → HostBuddy → Uninstall, or use the “Uninstall HostBuddy” shortcut if present.
+- Go to Settings → Apps → Installed apps → HostBuddy → Uninstall, or use the "Uninstall HostBuddy" shortcut if present.
 - Optional: remove app data at `%APPDATA%\HostBuddy` to fully reset.
 
 ---
@@ -61,39 +61,47 @@ Deleting the above directory removes all saved projects and local settings.
 
 ### Running your first project
 1. Open HostBuddy.
-2. Click “New Project” and provide a Title and either:
+2. Click "New Project" and provide a Title and either:
    - Plain HTML (self-contained), or
    - A single-file React component with a default export.
-3. Optionally enable “Offline use” if you want dependencies cached persistently for offline runs.
+3. Optionally enable "Offline use" if you want dependencies cached persistently for offline runs.
 4. Click Save, then Run.
 
 About dependencies:
 - For React projects, HostBuddy may need to download client-side packages (e.g., React) on first run.
 - Installs are performed via a bundled package manager with safeguards and no lifecycle scripts.
-- For “Offline use,” the initial install requires an internet connection; subsequent runs can be offline.
+- For "Offline use," the initial install requires an internet connection; subsequent runs can be offline.
 
 ---
 
 ### Troubleshooting
 macOS
-- “HostBuddy can’t be opened because it is from an unidentified developer”:
-  - Control-click → Open → Open, or allow in System Settings → Privacy & Security → “Open Anyway.”
-- “App is damaged and can’t be opened” after download:
-  - Re-download the DMG. If the message persists, you can remove the quarantine attribute as an advanced step:
+- "HostBuddy can't be opened because it is from an unidentified developer":
+  - Control-click → Open → Open, or allow in System Settings → Privacy & Security → "Open Anyway."
+- "App is damaged and can't be opened" after download:
+  - This happens because the app is not code-signed or notarized by Apple. To bypass:
+    
+    **Method 1 (Recommended)**: 
+    1. Right-click (or Control-click) the HostBuddy app in Applications
+    2. Select "Open" from the menu
+    3. Click "Open" in the dialog that appears
+    
+    **Method 2 (Advanced)**:
+    Remove the quarantine attribute:
     ```bash
-    xattr -dr com.apple.quarantine /Applications/HostBuddy.app
+    xattr -cr /Applications/HostBuddy.app
     ```
-    Then try opening the app again (Control-click → Open).
-- App doesn’t start or stays on “Verifying…”:
+    Then try opening the app normally.
+- App doesn't start or stays on "Verifying…":
   - Quit the app, eject the DMG if mounted, and try again. If using Intel build on Apple Silicon, install the arm64 build instead.
 
 Windows
 - SmartScreen warning:
-  - Click “More info” → “Run anyway.”
+  - Click "More info" → "Run anyway."
 - Installer blocked by antivirus or corporate policy:
   - Temporarily allow the installer or contact your administrator.
-- App won’t start:
-  - Reboot and try launching from the Start Menu; check that your security software isn’t blocking it.
+- App won't start:
+  - Reboot and try launching from the Start Menu; check that your security software isn't blocking it.
 
 Networking and proxies
 - If dependency installation fails for a React project, ensure your internet connection allows access to the npm registry and that any system proxies are configured correctly.
@@ -105,5 +113,4 @@ Networking and proxies
   - Not currently. Install new versions by replacing the app (macOS) or re-running the installer (Windows).
 - Does HostBuddy run code safely?
   - User code runs in a browser-like environment with Node integration disabled and context isolation enabled. Avoid running untrusted code.
-
 
