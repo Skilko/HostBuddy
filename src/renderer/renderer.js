@@ -20,7 +20,7 @@ const modalTitle = document.getElementById('modalTitle');
 const lineNumbers = document.getElementById('lineNumbers');
 const gsModal = document.getElementById('gsModal');
 const btnCloseGs = document.getElementById('btnCloseGs');
-const btnCopyPrompt = document.getElementById('btnCopyPrompt');
+const btnCopyPromptTemplate = document.getElementById('btnCopyPromptTemplate');
 const promptTemplate = document.getElementById('promptTemplate');
 const loadingOverlay = document.getElementById('loadingOverlay');
 const folderModal = document.getElementById('folderModal');
@@ -29,6 +29,9 @@ const folderNameInput = document.getElementById('folderNameInput');
 const btnCancelFolder = document.getElementById('btnCancelFolder');
 const attachmentsEl = document.getElementById('attachments');
 const attachmentsList = document.getElementById('attachmentsList');
+const btnClearCode = document.getElementById('btnClearCode');
+const btnPasteCode = document.getElementById('btnPasteCode');
+const versionBadge = document.getElementById('versionBadge');
 
 // Default icon used when a project has no uploaded icon
 const DEFAULT_APP_ICON = '../../assets/default-app.png';
@@ -117,12 +120,12 @@ function updateLineNumbers() {
 
 function syncScrollPosition() {
   if (!codeEl || !lineNumbers) return;
-  lineNumbers.scrollTop = codeEl.scrollTop;
-}
-
-function syncScrollFromLineNumbers() {
-  if (!codeEl || !lineNumbers) return;
-  codeEl.scrollTop = lineNumbers.scrollTop;
+  // Calculate the scroll position to keep line numbers aligned
+  const lineHeight = parseFloat(getComputedStyle(codeEl).lineHeight);
+  const scrollTop = codeEl.scrollTop;
+  
+  // Scroll the line numbers container
+  lineNumbers.scrollTop = scrollTop;
 }
 
 function showModal() { 
@@ -332,25 +335,45 @@ if (codeEl && lineNumbers) {
   
   // Sync scroll positions
   codeEl.addEventListener('scroll', syncScrollPosition);
-  lineNumbers.addEventListener('scroll', syncScrollFromLineNumbers);
-  
-  // Handle wheel events for better synchronization
-  codeEl.addEventListener('wheel', (e) => {
-    setTimeout(syncScrollPosition, 0);
-  });
-  
-  lineNumbers.addEventListener('wheel', (e) => {
-    setTimeout(syncScrollFromLineNumbers, 0);
-  });
 }
 btnCloseGs && btnCloseGs.addEventListener('click', closeGettingStarted);
-btnCopyPrompt && btnCopyPrompt.addEventListener('click', async () => {
+
+btnCopyPromptTemplate && btnCopyPromptTemplate.addEventListener('click', async () => {
   try {
     await navigator.clipboard.writeText(promptTemplate.value);
-    btnCopyPrompt.textContent = 'Copied!';
-    setTimeout(() => (btnCopyPrompt.textContent = 'Copy Prompt'), 1200);
-  } catch {}
+    const originalHTML = btnCopyPromptTemplate.innerHTML;
+    btnCopyPromptTemplate.innerHTML = '<span class="gs-copy-icon">✓</span><span class="gs-copy-text">Copied to Clipboard!</span>';
+    setTimeout(() => (btnCopyPromptTemplate.innerHTML = originalHTML), 2000);
+  } catch {
+    alert('Failed to copy. Please select and copy the text manually.');
+  }
 });
+
+// Getting Started Tab Switching
+function initGettingStartedTabs() {
+  const tabs = document.querySelectorAll('.gs-tab');
+  const contents = document.querySelectorAll('.gs-tab-content');
+  
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const targetTab = tab.dataset.tab;
+      
+      // Remove active class from all tabs and contents
+      tabs.forEach(t => t.classList.remove('active'));
+      contents.forEach(c => c.classList.remove('active'));
+      
+      // Add active class to clicked tab and corresponding content
+      tab.classList.add('active');
+      const targetContent = document.querySelector(`[data-content="${targetTab}"]`);
+      if (targetContent) {
+        targetContent.classList.add('active');
+      }
+    });
+  });
+}
+
+// Initialize tabs when document is ready
+initGettingStartedTabs();
 
 // Add icons to header buttons dynamically using the createLucideIcon function
 function addIconToButton(button, iconName) {
@@ -547,6 +570,36 @@ attachmentsEl && attachmentsEl.addEventListener('change', async (e) => {
   e.target.value = '';
 });
 
+// Clear code button
+btnClearCode && btnClearCode.addEventListener('click', () => {
+  if (codeEl) {
+    if (codeEl.value && !confirm('Are you sure you want to clear all code? This cannot be undone.')) {
+      return;
+    }
+    codeEl.value = '';
+    updateLineNumbers();
+    codeEl.focus();
+  }
+});
+
+// Paste from clipboard button
+btnPasteCode && btnPasteCode.addEventListener('click', async () => {
+  try {
+    const text = await navigator.clipboard.readText();
+    if (text && codeEl) {
+      codeEl.value = text;
+      // Use a slight delay to ensure textarea has rendered with the new content
+      setTimeout(() => {
+        updateLineNumbers();
+        syncScrollPosition();
+      }, 10);
+      codeEl.focus();
+    }
+  } catch (err) {
+    alert('Failed to read from clipboard. Please make sure you have granted clipboard permissions.');
+  }
+});
+
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   const title = titleEl.value.trim();
@@ -578,6 +631,19 @@ form.addEventListener('submit', async (e) => {
 });
 
 fetchAndRender();
+
+// Load and display version
+async function loadVersion() {
+  try {
+    const version = await window.api.getVersion();
+    if (versionBadge && version) {
+      versionBadge.textContent = `v${version}`;
+    }
+  } catch (e) {
+    console.error('Failed to load version:', e);
+  }
+}
+loadVersion();
 
 // Edit controls visibility toggle (default hidden)
 document.body.classList.add('edit-hidden');

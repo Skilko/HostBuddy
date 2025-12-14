@@ -133,6 +133,10 @@
                   <div class="step-title">Paste your code</div>
                 </div>
                 <div class="step-body">
+                  <div class="code-actions" style="margin-bottom: 10px;">
+                    <button type="button" id="btnPasteCode" class="btn-code-action">Paste from Clipboard</button>
+                    <button type="button" id="btnClearCode" class="btn-code-action">Clear Code</button>
+                  </div>
                   <label>HTML or single React component (required)
                     <div class="code-editor-container">
                       <div class="line-numbers" id="lineNumbers"></div>
@@ -156,22 +160,257 @@
 
     <div id="gsModal" class="modal hidden" role="dialog" aria-modal="true">
       <div class="modal-content">
-        <div class="modal-header">
-          <h2>Getting Started</h2>
-          <p class="modal-subtitle">Follow the steps to learn how HostBuddy works</p>
+        <div class="modal-header" style="position: relative;">
+          <h2>Getting Started with HostBuddy</h2>
+          <p class="modal-subtitle">Turn AI-generated code into real apps on your computer</p>
+          <div id="versionBadge" class="version-badge">v0.0.0</div>
         </div>
         <div class="modal-body">
-          <div class="form-steps">
+          <!-- Overview Section -->
+          <div class="gs-overview">
+            <p class="gs-overview-text">
+              HostBuddy is your safe playground for AI-created applications. Copy code from ChatGPT, Claude, or any AI assistant, 
+              paste it here, and run it instantly. No coding knowledge required!
+            </p>
+          </div>
+
+          <!-- Tab Navigation -->
+          <div class="gs-tabs">
+            <button class="gs-tab active" data-tab="quickstart">Quick Start</button>
+            <button class="gs-tab" data-tab="features">Features</button>
+            <button class="gs-tab" data-tab="ai-setup">AI Setup</button>
+          </div>
+
+          <!-- Quick Start Tab -->
+          <div class="gs-tab-content active" data-content="quickstart">
+            <h3 class="gs-section-title">Create Your First App in 3 Steps</h3>
+            
+            <div class="gs-workflow">
+              <div class="gs-workflow-step">
+                <div class="gs-workflow-icon">1</div>
+                <div class="gs-workflow-content">
+                  <h4>Get Code from AI</h4>
+                  <p>Ask ChatGPT, Claude, or Gemini to create an app for you. Copy the code they generate.</p>
+                  <div class="gs-tip">💡 Check the "AI Setup" tab for the best prompt to use!</div>
+                </div>
+              </div>
+
+              <div class="gs-workflow-arrow">↓</div>
+
+              <div class="gs-workflow-step">
+                <div class="gs-workflow-icon">2</div>
+                <div class="gs-workflow-content">
+                  <h4>Create Project</h4>
+                  <p>Click <strong>"New Project"</strong> → Name your app → Paste the code in Step 6 → Click <strong>"Save"</strong></p>
+                  <div class="gs-tip">📝 Optional: Add a description, icon, or attach image/CSS/JS files</div>
+                </div>
+              </div>
+
+              <div class="gs-workflow-arrow">↓</div>
+
+              <div class="gs-workflow-step">
+                <div class="gs-workflow-icon">3</div>
+                <div class="gs-workflow-content">
+                  <h4>Run & Enjoy</h4>
+                  <p>Click the <strong>"Run"</strong> button on your project card. Your app opens in a new window!</p>
+                  <div class="gs-tip">🎉 That's it! Edit anytime by clicking the Edit button.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Features Tab -->
+          <div class="gs-tab-content" data-content="features">
+            <h3 class="gs-section-title">Powerful Features</h3>
+            
+            <div class="gs-feature-grid">
+              <div class="gs-feature-card">
+                <div class="gs-feature-icon">📁</div>
+                <h4>Organize with Folders</h4>
+                <p>Create folders and drag-drop apps to organize your library.</p>
+                <ul class="gs-feature-list">
+                  <li>Click <strong>+</strong> in sidebar to create folders</li>
+                  <li>Drag apps onto folders to organize</li>
+                  <li>Use Edit mode to rename/delete</li>
+                </ul>
+              </div>
+
+              <div class="gs-feature-card">
+                <div class="gs-feature-icon">🔄</div>
+                <h4>Share & Import</h4>
+                <p>Export apps as .hbproj files to share with others or back up.</p>
+                <ul class="gs-feature-list">
+                  <li>Click Export on any project card</li>
+                  <li>Share the .hbproj file with anyone</li>
+                  <li>Import apps others have created</li>
+                </ul>
+              </div>
+
+              <div class="gs-feature-card">
+                <div class="gs-feature-icon">✈️</div>
+                <h4>Offline Mode</h4>
+                <p>Download dependencies once for apps that work without internet.</p>
+                <ul class="gs-feature-list">
+                  <li><strong>Normal:</strong> Downloads each time (requires internet)</li>
+                  <li><strong>Offline:</strong> Downloads once, runs anywhere</li>
+                </ul>
+              </div>
+
+              <div class="gs-feature-card">
+                <div class="gs-feature-icon">🔒</div>
+                <h4>Secure & Private</h4>
+                <p>Everything stays on your computer. No cloud, no tracking.</p>
+                <ul class="gs-feature-list">
+                  <li>All data stored locally</li>
+                  <li>No internet required (except for dependencies)</li>
+                  <li>Full control over your apps</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- AI Setup Tab -->
+          <div class="gs-tab-content" data-content="ai-setup">
+            <h3 class="gs-section-title">AI Context Template</h3>
+            <p class="gs-ai-instructions">
+              <strong>Copy this template and paste it into your AI chat</strong> before requesting an app. 
+              This teaches the AI about HostBuddy's capabilities and ensures compatible code.
+            </p>
+            
+            <div class="gs-code-container">
+              <textarea id="promptTemplate" class="code gs-ai-template" readonly>I'm using HostBuddy, a local desktop application that runs AI-generated apps securely on my computer. When I ask you to create an app, please follow these requirements:
+
+## HOSTBUDDY OVERVIEW
+HostBuddy is an Electron-based desktop app that:
+- Runs HTML and React applications locally on the user's computer
+- Stores projects in a local JSON database
+- Supports exporting projects as .hbproj files for sharing
+- Supports importing .hbproj files from others
+- Can attach image/CSS/JS files to projects (stored as base64)
+- Preprocesses HTML at runtime to convert file references to data URIs
+- Auto-installs safe npm packages for React apps (with security restrictions)
+
+## OUTPUT FORMAT REQUIREMENTS
+You must provide code in ONE of these formats:
+
+**Option 1: HTML (for simple apps)**
+- A complete, self-contained HTML document or snippet
+- Include all CSS in <style> tags and JavaScript in <script> tags
+- No external file references except for attached files (see below)
+
+**Option 2: React (for interactive apps)**
+- A single .tsx or .jsx file with a default export
+- Format: `export default function App() { return (...) }`
+- HostBuddy will bundle this at runtime using esbuild
+- You can import from npm packages (see Allowed Libraries below)
+
+## FILE ATTACHMENTS & REFERENCES
+- Users can attach image, CSS, or JS files separately in HostBuddy
+- Reference attached files simply by filename: `<img src="logo.png">` or `<link href="styles.css">`
+- HostBuddy automatically converts these to data: URIs at runtime
+- Do NOT use external URLs or CDN links - all assets must be attached or inline
+
+## ARCHITECTURE CONSTRAINTS
+**MUST BE CLIENT-SIDE ONLY:**
+- No backend servers, no API endpoints, no server-side code
+- No database connections (use localStorage or IndexedDB instead)
+- No environment variables or secrets
+- No file system access beyond browser storage
+- All functionality must work offline after initial load
+
+**DATA PERSISTENCE:**
+- Use localStorage for simple key-value storage
+- Use IndexedDB for more complex data
+- Design for local-only data - no cloud sync
+
+**EXPORT/IMPORT FUNCTIONALITY:**
+- Apps may be exported as .hbproj files and shared with others
+- Users can import .hbproj files to add new apps to their library
+- Design apps to be portable and self-contained
+
+## ALLOWED LIBRARIES (React apps only)
+**Pre-installed UI Components:**
+- Import from `@/components/ui/*` for these components:
+  - Button, Card, CardHeader, CardContent, CardTitle
+  - Input, Textarea, Label
+  - Tabs, TabsList, TabsTrigger, TabsContent
+  - Switch
+- These use Tailwind-style classes via Twind (runtime CSS-in-JS)
+
+**Recommended npm packages:**
+- react, react-dom (v18+)
+- lucide-react (icons)
+- recharts (charts/graphs)
+- Small, client-side-only libraries are generally safe
+
+**Package restrictions:**
+- Packages are auto-installed with `--ignore-scripts` and size caps
+- Server-side packages (Express, Next.js, etc.) will NOT work
+- Large packages may be rejected
+- Only client-side browser packages are supported
+
+## STYLING
+- For HTML: Use inline styles or <style> tags
+- For React: Tailwind classes work via Twind runtime (no config needed)
+- Modern, clean UI is preferred
+- Dark mode friendly when possible
+
+## EXAMPLE REQUEST & RESPONSE
+
+**User Request:**
+"Create a pomodoro timer app with start/pause/reset buttons and notifications"
+
+**Your Response Should:**
+1. Ask if they want HTML or React (or choose the simpler option)
+2. Output the complete code in one block
+3. Mention any files they should attach (e.g., "Attach notification.mp3 for the alert sound")
+4. Use only client-side features (localStorage for settings, Web Audio API for sounds)
+
+## COMMON MISTAKES TO AVOID
+❌ Don't use fetch() to external APIs (no CORS, no network in many cases)
+❌ Don't require a build step or webpack config
+❌ Don't use Node.js-specific modules (fs, path, etc.)
+❌ Don't create server code or API routes
+❌ Don't use environment variables or process.env
+❌ Don't reference external CSS/JS CDNs (inline or attach instead)
+
+## WHEN IN DOUBT
+- Prefer simpler HTML over React for basic apps
+- Keep everything self-contained in one file
+- Use browser APIs (localStorage, Canvas, Web Audio, etc.)
+- Design for offline use
+- Make it visually appealing and user-friendly
+
+Now, please help me create an app following these requirements.</textarea>
+              <button id="btnCopyPromptTemplate" class="gs-copy-btn" type="button">
+                <span class="gs-copy-icon">📋</span>
+                <span class="gs-copy-text">Copy AI Context</span>
+              </button>
+            </div>
+            
+            <div class="gs-tip-box">
+              <strong>💡 How to Use:</strong>
+              <ol style="margin: 8px 0 0 20px; padding: 0;">
+                <li>Copy this entire template</li>
+                <li>Paste it at the start of your AI chat (ChatGPT, Claude, etc.)</li>
+                <li>Then describe the app you want to create</li>
+                <li>The AI will generate compatible code for HostBuddy!</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="form-steps" style="display: none;">
             <div class="step">
               <div class="step-header">
                 <div class="step-num">1</div>
-                <div class="step-title">Supported code</div>
+                <div class="step-title">What is HostBuddy?</div>
               </div>
               <div class="step-body">
+                <p>HostBuddy lets you take code generated by AI chatbots (like ChatGPT, Claude, or Gemini) and run it as real applications on your computer. Think of it as a safe playground for AI-created apps!</p>
                 <ul>
-                  <li>Plain HTML (with inline CSS/JS)</li>
-                  <li>Single-file React component with a default export (TypeScript or JavaScript)</li>
-                  <li>Imports are scanned and safe packages may be auto-installed using the bundled package manager (no system npm/yarn required). Installs run with <em>ignore-scripts</em> and size caps. Prefer small client-only libs. Examples: <code>react</code>, <code>react-dom</code>, <code>lucide-react</code>, <code>recharts</code>. You can also import <code>@/components/ui/*</code> primitives (Card, CardHeader, CardContent, CardTitle, Button, Input, Textarea, Label, Tabs, TabsList, TabsTrigger, TabsContent, Switch).</li>
+                  <li><strong>Simple HTML apps</strong> – Websites with built-in styling and interactivity</li>
+                  <li><strong>React apps</strong> – More advanced interactive applications</li>
+                  <li><strong>No coding required</strong> – Just copy code from your AI chat and paste it here</li>
                 </ul>
               </div>
             </div>
@@ -179,44 +418,48 @@
             <div class="step">
               <div class="step-header">
                 <div class="step-num">2</div>
-                <div class="step-title">How it runs</div>
+                <div class="step-title">Creating Your First Project</div>
               </div>
               <div class="step-body">
-                <ul>
-                  <li>We auto-detect React vs HTML and set up the right environment.</li>
-                  <li>React code is bundled at runtime; HTML is displayed as-is.</li>
-                  <li>Imports are scanned and missing packages are auto-added to the project before install.</li>
-                </ul>
+                <ol>
+                  <li>Click the <strong>"New Project"</strong> button at the top</li>
+                  <li>Give your app a name and short description</li>
+                  <li>Optionally add an icon/picture for easy identification</li>
+                  <li>If you have images, CSS, or JavaScript files to include, attach them in Step 4</li>
+                  <li>Paste the code you got from your AI chat in Step 6</li>
+                  <li>Click <strong>"Save"</strong> and then click <strong>"Run"</strong> to launch your app!</li>
+                </ol>
+                <div class="hint">💡 Tip: The app automatically handles technical setup - you just provide the code!</div>
               </div>
             </div>
 
             <div class="step">
               <div class="step-header">
                 <div class="step-num">3</div>
-                <div class="step-title">Workflow (dependencies)</div>
+                <div class="step-title">Understanding Offline Mode</div>
               </div>
               <div class="step-body">
+                <p>Some apps need extra files (called "dependencies") to work properly. You can choose how to handle these:</p>
                 <ul>
-                  <li>Toggle <em>Offline use</em> when creating/editing a project to persist dependencies on your machine.</li>
-                  <li>First run with <em>Offline use</em>: you'll be prompted once to install dependencies. After that, runs are fast and work without internet.</li>
-                  <li>Without <em>Offline use</em>: dependencies may be installed into a temporary folder for that run only.</li>
-                  <li>Installs are safe (no lifecycle scripts, no optional deps) and cached in a shared store for reuse.</li>
+                  <li><strong>Normal mode (default)</strong> – Downloads what's needed each time you run the app. Requires internet.</li>
+                  <li><strong>Offline mode</strong> – Downloads everything once and saves it. The app will work without internet after the first run.</li>
                 </ul>
+                <div class="hint">💡 Choose offline mode if you plan to use the app frequently or without internet access.</div>
               </div>
             </div>
 
             <div class="step">
               <div class="step-header">
                 <div class="step-num">4</div>
-                <div class="step-title">Folders and organization</div>
+                <div class="step-title">Organizing with Folders</div>
               </div>
               <div class="step-body">
+                <p>Keep your apps organized by creating folders:</p>
                 <ul>
-                  <li>Create folders to organize your projects using the <strong>+</strong> button in the Folders sidebar.</li>
-                  <li>Move projects between folders with drag and drop — drag a project card onto any folder.</li>
-                  <li>Drag projects to "All Projects" to remove them from folders.</li>
-                  <li>Rename folders by clicking the edit button that appears when in edit mode.</li>
-                  <li>Delete folders with the trash button — your projects remain but become unassigned.</li>
+                  <li>Click the <strong>+</strong> button in the Folders sidebar to create a new folder</li>
+                  <li>Drag and drop app cards onto folders to organize them</li>
+                  <li>Click "Edit" button to rename or delete folders</li>
+                  <li>Drag apps to "All Projects" to remove them from folders</li>
                 </ul>
               </div>
             </div>
@@ -224,51 +467,151 @@
             <div class="step">
               <div class="step-header">
                 <div class="step-num">5</div>
-                <div class="step-title">Sharing: Import / Export</div>
+                <div class="step-title">Sharing Apps (Import & Export)</div>
               </div>
               <div class="step-body">
+                <p><strong>Export:</strong> Save any app to share with others or back up</p>
                 <ul>
-                  <li>Export a project from its card using the Export button. This saves a <code>.hbproj</code> (JSON) that includes the title, description, picture/icon, and code.</li>
-                  <li>Import projects from the header Import button (also available in the empty state). You can select multiple files; <code>.hbproj</code> and JSON exports are supported.</li>
-                  <li>Dependencies are not bundled in the export. HTML runs immediately; React projects may prompt to install client-side packages the first time they run.</li>
-                  <li>All operations are local. The app does not upload your projects.</li>
+                  <li>Click the Export button on any project card</li>
+                  <li>A <code>.hbproj</code> file will be saved (it's like a package containing your app)</li>
+                  <li>Share this file with anyone else using HostBuddy</li>
                 </ul>
+                <p><strong>Import:</strong> Add apps that others have shared with you</p>
+                <ul>
+                  <li>Click the Import button in the header</li>
+                  <li>Select one or more <code>.hbproj</code> files</li>
+                  <li>The apps will appear in your library ready to run</li>
+                </ul>
+                <div class="hint">🔒 Everything stays on your computer - HostBuddy doesn't send your projects anywhere.</div>
               </div>
             </div>
 
             <div class="step">
               <div class="step-header">
                 <div class="step-num">6</div>
-                <div class="step-title">Prompt template</div>
+                <div class="step-title">AI Context (Copy & Paste This to Your AI)</div>
               </div>
               <div class="step-body">
-                <div class="hint">Copy this and replace the placeholder with your application request.</div>
-                <textarea id="promptTemplate" class="code" readonly>
- Create a single-file app for a local Electron host. Output only the code file.
- 
- Requirements:
- - Choose one:
-   - HTML: A complete HTML snippet, self-contained (inline CSS/JS). No external network calls.
-   - React: A single component file (JSX/TSX) exporting default: `export default function App() { ... }`.
- - Client-side only. No servers. No environment variables.
- - If using imports, prefer small client-side libraries. The host may auto-install missing packages with safeguards (ignore-scripts, size caps) via a bundled package manager.
- - You can import primitives from the path alias `@/components/ui/*` (Card, CardHeader, CardContent, CardTitle, Button, Input, Textarea, Label, Tabs, TabsList, TabsTrigger, TabsContent, Switch).
- 
- Your task:
- - Build this application: <<<APP_REQUEST>>>  ← Replace with your request
- 
- Output:
- - HTML option: a complete HTML snippet.
- - React option: a single component file with `export default`.
+                <p><strong>Copy this guidance and paste it into your AI chat</strong> (ChatGPT, Claude, Gemini, etc.) before requesting an app. This teaches the AI about HostBuddy's capabilities and requirements.</p>
+                <textarea id="promptTemplate" class="code" readonly style="min-height: 320px;">
+I'm using HostBuddy, a local desktop application that runs AI-generated apps securely on my computer. When I ask you to create an app, please follow these requirements:
+
+## HOSTBUDDY OVERVIEW
+HostBuddy is an Electron-based desktop app that:
+- Runs HTML and React applications locally on the user's computer
+- Stores projects in a local JSON database
+- Supports exporting projects as .hbproj files for sharing
+- Supports importing .hbproj files from others
+- Can attach image/CSS/JS files to projects (stored as base64)
+- Preprocesses HTML at runtime to convert file references to data URIs
+- Auto-installs safe npm packages for React apps (with security restrictions)
+
+## OUTPUT FORMAT REQUIREMENTS
+You must provide code in ONE of these formats:
+
+**Option 1: HTML (for simple apps)**
+- A complete, self-contained HTML document or snippet
+- Include all CSS in <style> tags and JavaScript in <script> tags
+- No external file references except for attached files (see below)
+
+**Option 2: React (for interactive apps)**
+- A single .tsx or .jsx file with a default export
+- Format: `export default function App() { return (...) }`
+- HostBuddy will bundle this at runtime using esbuild
+- You can import from npm packages (see Allowed Libraries below)
+
+## FILE ATTACHMENTS & REFERENCES
+- Users can attach image, CSS, or JS files separately in HostBuddy
+- Reference attached files simply by filename: `<img src="logo.png">` or `<link href="styles.css">`
+- HostBuddy automatically converts these to data: URIs at runtime
+- Do NOT use external URLs or CDN links - all assets must be attached or inline
+
+## ARCHITECTURE CONSTRAINTS
+**MUST BE CLIENT-SIDE ONLY:**
+- No backend servers, no API endpoints, no server-side code
+- No database connections (use localStorage or IndexedDB instead)
+- No environment variables or secrets
+- No file system access beyond browser storage
+- All functionality must work offline after initial load
+
+**DATA PERSISTENCE:**
+- Use localStorage for simple key-value storage
+- Use IndexedDB for more complex data
+- Design for local-only data - no cloud sync
+
+**EXPORT/IMPORT FUNCTIONALITY:**
+- Apps may be exported as .hbproj files and shared with others
+- Users can import .hbproj files to add new apps to their library
+- Design apps to be portable and self-contained
+
+## ALLOWED LIBRARIES (React apps only)
+**Pre-installed UI Components:**
+- Import from `@/components/ui/*` for these components:
+  - Button, Card, CardHeader, CardContent, CardTitle
+  - Input, Textarea, Label
+  - Tabs, TabsList, TabsTrigger, TabsContent
+  - Switch
+- These use Tailwind-style classes via Twind (runtime CSS-in-JS)
+
+**Recommended npm packages:**
+- react, react-dom (v18+)
+- lucide-react (icons)
+- recharts (charts/graphs)
+- Small, client-side-only libraries are generally safe
+
+**Package restrictions:**
+- Packages are auto-installed with `--ignore-scripts` and size caps
+- Server-side packages (Express, Next.js, etc.) will NOT work
+- Large packages may be rejected
+- Only client-side browser packages are supported
+
+## STYLING
+- For HTML: Use inline styles or <style> tags
+- For React: Tailwind classes work via Twind runtime (no config needed)
+- Modern, clean UI is preferred
+- Dark mode friendly when possible
+
+## EXAMPLE REQUEST & RESPONSE
+
+**User Request:**
+"Create a pomodoro timer app with start/pause/reset buttons and notifications"
+
+**Your Response Should:**
+1. Ask if they want HTML or React (or choose the simpler option)
+2. Output the complete code in one block
+3. Mention any files they should attach (e.g., "Attach notification.mp3 for the alert sound")
+4. Use only client-side features (localStorage for settings, Web Audio API for sounds)
+
+## COMMON MISTAKES TO AVOID
+❌ Don't use fetch() to external APIs (no CORS, no network in many cases)
+❌ Don't require a build step or webpack config
+❌ Don't use Node.js-specific modules (fs, path, etc.)
+❌ Don't create server code or API routes
+❌ Don't use environment variables or process.env
+❌ Don't reference external CSS/JS CDNs (inline or attach instead)
+
+## WHEN IN DOUBT
+- Prefer simpler HTML over React for basic apps
+- Keep everything self-contained in one file
+- Use browser APIs (localStorage, Canvas, Web Audio, etc.)
+- Design for offline use
+- Make it visually appealing and user-friendly
+
+Now, please help me create an app following these requirements.
                 </textarea>
+                <div style="margin-top: 10px; display: flex; gap: 8px;">
+                  <button id="btnCopyPromptTemplate" class="btn-code-action" type="button" style="flex: 1;">Copy AI Context</button>
+                </div>
+                <div class="hint" style="margin-top: 10px;">
+                  💡 <strong>Tip:</strong> Paste this context at the start of your conversation with the AI, then describe what app you want. The AI will understand HostBuddy's requirements and create compatible code!
+                </div>
               </div>
             </div>
           </div>
         </div>
         <div class="modal-footer">
           <div class="actions">
-            <button id="btnCopyPrompt" class="primary" type="button">Copy Prompt</button>
-            <button id="btnCloseGs" type="button">Close</button>
+            <button id="btnCloseGs" class="primary" type="button">Close</button>
           </div>
         </div>
       </div>

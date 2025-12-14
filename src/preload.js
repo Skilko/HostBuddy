@@ -12,7 +12,8 @@ contextBridge.exposeInMainWorld('api', {
   listFolders: () => ipcRenderer.invoke('folders:list'),
   createFolder: (name) => ipcRenderer.invoke('folders:create', { name }),
   renameFolder: (id, name) => ipcRenderer.invoke('folders:rename', id, name),
-  deleteFolder: (id) => ipcRenderer.invoke('folders:delete', id)
+  deleteFolder: (id) => ipcRenderer.invoke('folders:delete', id),
+  getVersion: () => ipcRenderer.invoke('app:getVersion')
 });
 
 

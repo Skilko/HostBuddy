@@ -701,6 +701,16 @@ function initIpc(ipcMain, store, app, BrowserWindow) {
     }
     return false;
   });
+
+  ipcMain.handle('app:getVersion', () => {
+    try {
+      const pkgPath = path.join(__dirname, '..', '..', 'package.json');
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+      return pkg.version || '0.0.0';
+    } catch (e) {
+      return '0.0.0';
+    }
+  });
 }
 
 module.exports = { initIpc };

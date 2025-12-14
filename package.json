@@ -1,6 +1,6 @@
 {
   "name": "hostbuddy2",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Run-time environment for AI one-shot apps and HTML files. Create, manage, and run projects locally on macOS and Windows.",
   "main": "src/main/main.js",
   "type": "commonjs",

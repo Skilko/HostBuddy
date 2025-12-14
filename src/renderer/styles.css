@@ -218,37 +218,43 @@ input[type="text"], textarea { width: 100%; padding: 10px 12px; background: #0a0
   border-radius: 10px;
   background: #0a0f20;
   overflow: hidden;
+  max-height: 400px;
+  height: 400px;
 }
 
 .line-numbers {
   background: #070c18;
   border-right: 1px solid #1f2a44;
-  padding: 10px 8px;
+  padding: 10px 8px 10px 8px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 13px;
-  line-height: 1.4;
+  line-height: 1.5;
   color: var(--muted);
   user-select: none;
   min-width: 40px;
   text-align: right;
   white-space: pre;
-  overflow: hidden;
-  height: 220px;
-  min-height: 220px;
+  overflow-y: hidden;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 textarea.code {
-  min-height: 220px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 13px;
-  line-height: 1.4;
+  line-height: 1.5;
   border: none;
   background: transparent;
-  resize: vertical;
+  resize: none;
   outline: none;
   flex: 1;
   margin: 0;
   padding: 10px 12px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: auto;
+  height: 100%;
 }
 
 textarea.code:focus {
@@ -369,4 +375,315 @@ textarea.code:focus {
 .attachment-remove:hover { 
   background: rgba(239, 68, 68, 0.1); 
   border-color: var(--danger); 
+}
+
+/* Code action buttons */
+.code-actions { 
+  display: flex; 
+  gap: 8px; 
+}
+.btn-code-action { 
+  padding: 8px 14px; 
+  border: 1px solid var(--border); 
+  background: rgba(255,255,255,0.05); 
+  color: var(--text); 
+  cursor: pointer; 
+  border-radius: 8px; 
+  font-size: 13px; 
+  font-weight: 500; 
+  transition: all 0.2s ease; 
+  white-space: nowrap;
+}
+.btn-code-action:hover { 
+  background: rgba(255, 255, 255, 0.1); 
+  border-color: var(--accent); 
+  transform: translateY(-1px); 
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Folder Modal Specific Styling */
+#folderModal .modal-content {
+  height: auto;
+  max-height: none;
+}
+
+#folderModal .modal-body {
+  flex: 0 1 auto;
+  padding: 20px 18px;
+}
+
+/* Version Number Styling */
+.version-badge {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  font-size: 12px;
+  color: var(--muted);
+  background: rgba(79, 70, 229, 0.1);
+  border: 1px solid rgba(79, 70, 229, 0.3);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+/* Getting Started Modal Styling */
+.gs-overview {
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(124, 58, 237, 0.1));
+  border: 1px solid rgba(79, 70, 229, 0.3);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.gs-overview-text {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+/* Tab Navigation */
+.gs-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 0;
+}
+
+.gs-tab {
+  padding: 12px 20px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  bottom: -2px;
+}
+
+.gs-tab:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.gs-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* Tab Content */
+.gs-tab-content {
+  display: none;
+  animation: fadeIn 0.3s ease;
+}
+
+.gs-tab-content.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.gs-section-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 20px 0;
+  color: var(--text);
+}
+
+/* Workflow Steps */
+.gs-workflow {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.gs-workflow-step {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.2s ease;
+}
+
+.gs-workflow-step:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(79, 70, 229, 0.4);
+  transform: translateX(4px);
+}
+
+.gs-workflow-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent), #7c3aed);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.gs-workflow-content h4 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.gs-workflow-content p {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.gs-workflow-arrow {
+  text-align: center;
+  font-size: 24px;
+  color: var(--accent);
+  margin: -8px 0;
+}
+
+.gs-tip {
+  background: rgba(79, 70, 229, 0.1);
+  border-left: 3px solid var(--accent);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #c7d2fe;
+  margin-top: 8px;
+}
+
+/* Feature Grid */
+.gs-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.gs-feature-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.2s ease;
+}
+
+.gs-feature-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(79, 70, 229, 0.4);
+  transform: translateY(-2px);
+}
+
+.gs-feature-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+}
+
+.gs-feature-card h4 {
+  margin: 0 0 8px 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.gs-feature-card p {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.gs-feature-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.gs-feature-list li {
+  margin-bottom: 4px;
+}
+
+/* AI Setup Tab */
+.gs-ai-instructions {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 0 0 16px 0;
+  padding: 16px;
+  background: rgba(79, 70, 229, 0.1);
+  border: 1px solid rgba(79, 70, 229, 0.3);
+  border-radius: 10px;
+}
+
+.gs-code-container {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.gs-ai-template {
+  min-height: 400px;
+  max-height: 500px;
+  background: #0a0f20;
+  border: 1px solid #2c3657;
+  border-radius: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 16px;
+  color: var(--text);
+  resize: vertical;
+}
+
+.gs-copy-btn {
+  margin-top: 12px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.gs-copy-btn:hover {
+  background: #5b52e8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+}
+
+.gs-copy-icon {
+  font-size: 18px;
+}
+
+.gs-tip-box {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 10px;
+  padding: 16px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
 }
