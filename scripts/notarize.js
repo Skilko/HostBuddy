@@ -8,3 +8,4 @@ exports.default = async function notarizing(context) {
   // Future: Add notarization logic here when certificates are available
   console.log('Notarization not configured (no credentials)');
 };
+

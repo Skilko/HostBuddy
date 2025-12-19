@@ -31,7 +31,24 @@ const attachmentsEl = document.getElementById('attachments');
 const attachmentsList = document.getElementById('attachmentsList');
 const btnClearCode = document.getElementById('btnClearCode');
 const btnPasteCode = document.getElementById('btnPasteCode');
+const btnCopyAiContext = document.getElementById('btnCopyAiContext');
+const btnCopyAiContextText = document.getElementById('btnCopyAiContextText');
 const versionBadge = document.getElementById('versionBadge');
+const updateRequestStep = document.getElementById('updateRequestStep');
+const btnOpenUpdateRequest = document.getElementById('btnOpenUpdateRequest');
+const updateRequestModal = document.getElementById('updateRequestModal');
+const stageTabs = document.querySelectorAll('.stage-tab');
+const stageContents = document.querySelectorAll('.stage-content');
+const stageConnectors = document.querySelectorAll('.stage-connector');
+const btnPrevStage = document.getElementById('btnPrevStage');
+const btnNextStage = document.getElementById('btnNextStage');
+const stageImproveTab = document.getElementById('stageImproveTab');
+const updateRequestTitle = document.getElementById('updateRequestTitle');
+const updateRequestInput = document.getElementById('updateRequestInput');
+const generatedPrompt = document.getElementById('generatedPrompt');
+const btnCancelUpdateRequest = document.getElementById('btnCancelUpdateRequest');
+const btnGeneratePrompt = document.getElementById('btnGeneratePrompt');
+const btnCopyGeneratedPrompt = document.getElementById('btnCopyGeneratedPrompt');
 
 // Default icon used when a project has no uploaded icon
 const DEFAULT_APP_ICON = '../../assets/default-app.png';
@@ -40,6 +57,10 @@ let iconBase64 = null;
 let editProjectId = null;
 let selectedFolderId = null; // null means "All"
 let projectAttachments = []; // Array of { filename, mimeType, data }
+let updateRequestProject = null; // Project being updated via Request Update modal
+let currentEditProject = null; // Project currently being edited
+let currentStage = 'setup'; // Current stage in the project modal
+const stages = ['setup', 'code', 'improve'];
 
 function createLucideIcon(name) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -99,6 +120,12 @@ function createLucideIcon(name) {
       svg.appendChild(p('M12 15V3'));
       break;
     }
+    case 'sparkles': {
+      svg.appendChild(p('M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z'));
+      svg.appendChild(p('M5 19l1 3 1-3 3-1-3-1-1-3-1 3-3 1 3 1z'));
+      svg.appendChild(p('M19 13l.5 1.5 1.5.5-1.5.5-.5 1.5-.5-1.5L17 15l1.5-.5.5-1.5z'));
+      break;
+    }
   }
   return svg;
 }
@@ -137,20 +164,128 @@ function hideModal() {
   form.reset(); 
   iconBase64 = null; 
   editProjectId = null; 
+  currentEditProject = null;
   projectAttachments = [];
   renderAttachmentsList();
   if (modalTitle) modalTitle.textContent = 'Create Project';
   updateLineNumbers();
+  // Reset to first stage
+  switchToStage('setup');
 }
+
+// Stage navigation functions
+function switchToStage(stageName) {
+  currentStage = stageName;
+  const stageIndex = stages.indexOf(stageName);
+  
+  // Update tabs
+  stageTabs.forEach((tab, idx) => {
+    const tabStage = tab.dataset.stage;
+    tab.classList.remove('active', 'completed');
+    if (tabStage === stageName) {
+      tab.classList.add('active');
+    } else if (stages.indexOf(tabStage) < stageIndex) {
+      tab.classList.add('completed');
+    }
+  });
+  
+  // Update connectors
+  stageConnectors.forEach((connector, idx) => {
+    connector.classList.remove('completed');
+    if (idx < stageIndex) {
+      connector.classList.add('completed');
+    }
+  });
+  
+  // Update content
+  stageContents.forEach(content => {
+    content.classList.remove('active');
+    if (content.dataset.stageContent === stageName) {
+      content.classList.add('active');
+    }
+  });
+  
+  // Update navigation buttons
+  updateStageNavButtons();
+  
+  // Update line numbers if switching to code stage
+  if (stageName === 'code') {
+    setTimeout(updateLineNumbers, 0);
+  }
+}
+
+function updateStageNavButtons() {
+  const stageIndex = stages.indexOf(currentStage);
+  const isEditing = !!editProjectId;
+  
+  // Show/hide previous button
+  if (btnPrevStage) {
+    btnPrevStage.style.display = stageIndex > 0 ? 'inline-flex' : 'none';
+  }
+  
+  // Show/hide next button (hide on last stage, or hide "improve" stage for new projects)
+  if (btnNextStage) {
+    const isLastAccessibleStage = isEditing ? (stageIndex >= stages.length - 1) : (stageIndex >= 1);
+    btnNextStage.style.display = isLastAccessibleStage ? 'none' : 'inline-flex';
+  }
+  
+  // Hide/show improve tab for new projects
+  if (stageImproveTab) {
+    stageImproveTab.style.display = isEditing ? 'flex' : 'none';
+  }
+  // Hide/show the second connector too
+  if (stageConnectors[1]) {
+    stageConnectors[1].style.display = isEditing ? 'block' : 'none';
+  }
+}
+
+function goToNextStage() {
+  const stageIndex = stages.indexOf(currentStage);
+  const isEditing = !!editProjectId;
+  const maxStage = isEditing ? stages.length - 1 : 1; // New projects can only go to 'code' stage
+  
+  if (stageIndex < maxStage) {
+    switchToStage(stages[stageIndex + 1]);
+  }
+}
+
+function goToPrevStage() {
+  const stageIndex = stages.indexOf(currentStage);
+  if (stageIndex > 0) {
+    switchToStage(stages[stageIndex - 1]);
+  }
+}
+
+// Stage tab click handlers
+stageTabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    const targetStage = tab.dataset.stage;
+    const isEditing = !!editProjectId;
+    
+    // Prevent navigating to 'improve' stage for new projects
+    if (targetStage === 'improve' && !isEditing) {
+      return;
+    }
+    
+    switchToStage(targetStage);
+  });
+});
+
+// Stage navigation button handlers
+btnPrevStage && btnPrevStage.addEventListener('click', goToPrevStage);
+btnNextStage && btnNextStage.addEventListener('click', goToNextStage);
 
 function openCreateModal() {
   editProjectId = null;
+  currentEditProject = null;
   if (modalTitle) modalTitle.textContent = 'Create Project';
   form.reset();
   iconBase64 = null;
   projectAttachments = [];
   renderAttachmentsList();
   if (offlineEl) offlineEl.checked = false;
+  // Initialize stage navigation for new project
+  switchToStage('setup');
   showModal();
 }
 
@@ -163,6 +298,7 @@ function closeGettingStarted() {
 
 function openEditModal(project) {
   editProjectId = project.id;
+  currentEditProject = project; // Store for update request modal
   if (modalTitle) modalTitle.textContent = 'Edit Project';
   titleEl.value = project.title || '';
   descEl.value = project.description || '';
@@ -172,6 +308,8 @@ function openEditModal(project) {
   projectAttachments = Array.isArray(project.attachments) ? [...project.attachments] : [];
   renderAttachmentsList();
   if (offlineEl) offlineEl.checked = !!project.offline;
+  // Initialize stage navigation for editing
+  switchToStage('setup');
   showModal();
   updateLineNumbers();
 }
@@ -451,6 +589,130 @@ folderForm && folderForm.addEventListener('submit', async (e) => {
   }
 });
 
+// --- Update Request Modal Functions ---
+function openUpdateRequestModal(project) {
+  if (!updateRequestModal) return;
+  updateRequestProject = project;
+  if (updateRequestTitle) {
+    updateRequestTitle.textContent = `Request Update: ${project.title}`;
+  }
+  if (updateRequestInput) {
+    updateRequestInput.value = '';
+  }
+  if (generatedPrompt) {
+    generatedPrompt.value = '';
+  }
+  if (btnCopyGeneratedPrompt) {
+    btnCopyGeneratedPrompt.disabled = true;
+  }
+  updateRequestModal.classList.remove('hidden');
+  if (updateRequestInput) {
+    setTimeout(() => updateRequestInput.focus(), 0);
+  }
+}
+
+function closeUpdateRequestModal() {
+  if (!updateRequestModal) return;
+  updateRequestModal.classList.add('hidden');
+  updateRequestProject = null;
+  if (updateRequestInput) updateRequestInput.value = '';
+  if (generatedPrompt) generatedPrompt.value = '';
+  if (btnCopyGeneratedPrompt) btnCopyGeneratedPrompt.disabled = true;
+}
+
+// Condensed HostBuddy context for update requests
+const UPDATE_REQUEST_CONTEXT = `You are helping update an existing HostBuddy project. HostBuddy is a desktop app that runs AI-generated HTML and React applications locally.
+
+## OUTPUT FORMAT REQUIREMENTS
+Provide code in ONE of these formats:
+
+**Option 1: HTML (for simple apps)**
+- A complete, self-contained HTML document
+- Include all CSS in <style> tags and JavaScript in <script> tags
+
+**Option 2: React (for interactive apps)**
+- A single .tsx or .jsx file with a default export
+- Format: \`export default function App() { return (...) }\`
+- You can import from npm packages (react, react-dom, lucide-react, recharts)
+
+## ARCHITECTURE CONSTRAINTS
+- Must be CLIENT-SIDE ONLY - no backend servers or API endpoints
+- Use localStorage or IndexedDB for data persistence
+- All functionality must work offline after initial load
+- No external URLs or CDN links - all assets must be inline
+
+## STYLING
+- For HTML: Use inline styles or <style> tags
+- For React: Tailwind classes work via Twind runtime
+
+## IMPORTANT
+- Preserve any existing functionality unless explicitly asked to remove it
+- Maintain the same code format (HTML or React) as the original
+- Output the COMPLETE updated code, not just the changes`;
+
+function generateUpdatePrompt() {
+  if (!updateRequestProject || !updateRequestInput) return '';
+  
+  const userRequest = updateRequestInput.value.trim();
+  if (!userRequest) {
+    alert('Please enter your development request.');
+    return '';
+  }
+  
+  const projectCode = updateRequestProject.code || '';
+  
+  const prompt = `${UPDATE_REQUEST_CONTEXT}
+
+---
+
+## CURRENT PROJECT CODE
+
+\`\`\`
+${projectCode}
+\`\`\`
+
+---
+
+## DEVELOPMENT REQUEST
+
+${userRequest}
+
+---
+
+Please provide the complete updated code that implements the requested changes.`;
+
+  return prompt;
+}
+
+btnCancelUpdateRequest && btnCancelUpdateRequest.addEventListener('click', closeUpdateRequestModal);
+
+btnGeneratePrompt && btnGeneratePrompt.addEventListener('click', () => {
+  const prompt = generateUpdatePrompt();
+  if (prompt && generatedPrompt) {
+    generatedPrompt.value = prompt;
+    if (btnCopyGeneratedPrompt) {
+      btnCopyGeneratedPrompt.disabled = false;
+    }
+  }
+});
+
+btnCopyGeneratedPrompt && btnCopyGeneratedPrompt.addEventListener('click', async () => {
+  if (!generatedPrompt || !generatedPrompt.value) return;
+  
+  try {
+    await navigator.clipboard.writeText(generatedPrompt.value);
+    const originalText = btnCopyGeneratedPrompt.textContent;
+    btnCopyGeneratedPrompt.textContent = 'Copied!';
+    btnCopyGeneratedPrompt.disabled = true;
+    setTimeout(() => {
+      btnCopyGeneratedPrompt.textContent = originalText;
+      btnCopyGeneratedPrompt.disabled = false;
+    }, 2000);
+  } catch (err) {
+    alert('Failed to copy to clipboard. Please select and copy the text manually.');
+  }
+});
+
 async function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -598,6 +860,46 @@ btnPasteCode && btnPasteCode.addEventListener('click', async () => {
   } catch (err) {
     alert('Failed to read from clipboard. Please make sure you have granted clipboard permissions.');
   }
+});
+
+// Copy AI Context button (in code stage)
+btnCopyAiContext && btnCopyAiContext.addEventListener('click', async () => {
+  try {
+    // Get the AI context template from the Getting Started modal
+    const templateText = promptTemplate ? promptTemplate.value : '';
+    if (!templateText) {
+      alert('Could not find AI context template.');
+      return;
+    }
+    
+    await navigator.clipboard.writeText(templateText);
+    
+    // Visual feedback
+    if (btnCopyAiContextText) {
+      const originalText = btnCopyAiContextText.textContent;
+      btnCopyAiContextText.textContent = 'Copied!';
+      setTimeout(() => {
+        btnCopyAiContextText.textContent = originalText;
+      }, 2000);
+    }
+  } catch (err) {
+    alert('Failed to copy to clipboard. Please try again.');
+  }
+});
+
+// Open update request modal from edit modal
+btnOpenUpdateRequest && btnOpenUpdateRequest.addEventListener('click', () => {
+  if (!currentEditProject) {
+    alert('Please save the project first before requesting an update.');
+    return;
+  }
+  // Use the latest code from the textarea in case user has made edits
+  const projectWithLatestCode = {
+    ...currentEditProject,
+    code: codeEl.value || currentEditProject.code,
+    title: titleEl.value || currentEditProject.title
+  };
+  openUpdateRequestModal(projectWithLatestCode);
 });
 
 form.addEventListener('submit', async (e) => {

@@ -60,97 +60,160 @@
           <p class="modal-subtitle">Follow the steps to set up your project</p>
         </div>
         <form id="projectForm">
+          <!-- Stage Navigation -->
+          <div class="stage-nav">
+            <button type="button" class="stage-tab active" data-stage="setup">
+              <span class="stage-num">1</span>
+              <span class="stage-label">Setup Project</span>
+            </button>
+            <div class="stage-connector"></div>
+            <button type="button" class="stage-tab" data-stage="code">
+              <span class="stage-num">2</span>
+              <span class="stage-label">Manage Code</span>
+            </button>
+            <div class="stage-connector"></div>
+            <button type="button" class="stage-tab" data-stage="improve" id="stageImproveTab">
+              <span class="stage-num">3</span>
+              <span class="stage-label">Use & Improve</span>
+            </button>
+          </div>
+
           <div class="modal-body">
-            <div class="form-steps">
-              <div class="step">
-                <div class="step-header">
-                  <div class="step-num">1</div>
-                  <div class="step-title">Name your project</div>
-                </div>
-                <div class="step-body">
-                  <label>Project title
-                    <input id="title" type="text" placeholder="My Project" required />
-                  </label>
-                  <div class="hint">This name appears on your project card.</div>
-                </div>
-              </div>
-
-              <div class="step">
-                <div class="step-header">
-                  <div class="step-num">2</div>
-                  <div class="step-title">Add a short description</div>
-                </div>
-                <div class="step-body">
-                  <label>Short description
-                    <textarea id="description" placeholder="What does it do?"></textarea>
-                  </label>
-                </div>
-              </div>
-
-              <div class="step">
-                <div class="step-header">
-                  <div class="step-num">3</div>
-                  <div class="step-title">Choose a picture (optional)</div>
-                </div>
-                <div class="step-body">
-                  <label>Project picture
-                    <input id="icon" type="file" accept="image/*" />
-                  </label>
-                  <div class="hint">Leave blank to keep the current picture when editing.</div>
-                </div>
-              </div>
-
-              <div class="step">
-                <div class="step-header">
-                  <div class="step-num">4</div>
-                  <div class="step-title">Attach files (optional)</div>
-                </div>
-                <div class="step-body">
-                  <label>Attach images, CSS, or JS files
-                    <input id="attachments" type="file" accept="image/*,.css,.js" multiple />
-                  </label>
-                  <div class="hint">These files will be embedded in your project and converted to data URIs at runtime.</div>
-                  <div id="attachmentsList" class="attachments-list"></div>
-                </div>
-              </div>
-
-              <div class="step">
-                <div class="step-header">
-                  <div class="step-num">5</div>
-                  <div class="step-title">Set dependency mode</div>
-                </div>
-                <div class="step-body">
-                  <label class="checkbox-row">
-                    <input id="offline" type="checkbox" />
-                    <span>Offline use — install dependencies persistently so it can run without internet.</span>
-                  </label>
-                </div>
-              </div>
-
-              <div class="step">
-                <div class="step-header">
-                  <div class="step-num">6</div>
-                  <div class="step-title">Paste your code</div>
-                </div>
-                <div class="step-body">
-                  <div class="code-actions" style="margin-bottom: 10px;">
-                    <button type="button" id="btnPasteCode" class="btn-code-action">Paste from Clipboard</button>
-                    <button type="button" id="btnClearCode" class="btn-code-action">Clear Code</button>
+            <!-- Stage 1: Setup Project -->
+            <div class="stage-content active" data-stage-content="setup">
+              <div class="form-steps">
+                <div class="step">
+                  <div class="step-header">
+                    <div class="step-num">1</div>
+                    <div class="step-title">Name your project</div>
                   </div>
-                  <label>HTML or single React component (required)
-                    <div class="code-editor-container">
-                      <div class="line-numbers" id="lineNumbers"></div>
-                      <textarea id="code" class="code" placeholder="Paste HTML or a React component (default export) here" required></textarea>
+                  <div class="step-body">
+                    <label>Project title
+                      <input id="title" type="text" placeholder="My Project" required />
+                    </label>
+                    <div class="hint">This name appears on your project card.</div>
+                  </div>
+                </div>
+
+                <div class="step">
+                  <div class="step-header">
+                    <div class="step-num">2</div>
+                    <div class="step-title">Add a short description</div>
+                  </div>
+                  <div class="step-body">
+                    <label>Short description
+                      <textarea id="description" placeholder="What does it do?"></textarea>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="step">
+                  <div class="step-header">
+                    <div class="step-num">3</div>
+                    <div class="step-title">Choose a picture (optional)</div>
+                  </div>
+                  <div class="step-body">
+                    <label>Project picture
+                      <input id="icon" type="file" accept="image/*" />
+                    </label>
+                    <div class="hint">Leave blank to keep the current picture when editing.</div>
+                  </div>
+                </div>
+
+                <div class="step">
+                  <div class="step-header">
+                    <div class="step-num">4</div>
+                    <div class="step-title">Attach files (optional)</div>
+                  </div>
+                  <div class="step-body">
+                    <label>Attach images, CSS, or JS files
+                      <input id="attachments" type="file" accept="image/*,.css,.js" multiple />
+                    </label>
+                    <div class="hint">These files will be embedded in your project and converted to data URIs at runtime.</div>
+                    <div id="attachmentsList" class="attachments-list"></div>
+                  </div>
+                </div>
+
+                <div class="step">
+                  <div class="step-header">
+                    <div class="step-num">5</div>
+                    <div class="step-title">Set dependency mode</div>
+                  </div>
+                  <div class="step-body">
+                    <label class="checkbox-row">
+                      <input id="offline" type="checkbox" />
+                      <span>Offline use — install dependencies persistently so it can run without internet.</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Stage 2: Manage Code -->
+            <div class="stage-content" data-stage-content="code">
+              <div class="form-steps">
+                <div class="step step-full-height">
+                  <div class="step-header">
+                    <div class="step-num">6</div>
+                    <div class="step-title">Paste your code</div>
+                  </div>
+                  <div class="step-body">
+                    <div class="code-actions" style="margin-bottom: 10px;">
+                      <button type="button" id="btnPasteCode" class="btn-code-action">Paste from Clipboard</button>
+                      <button type="button" id="btnClearCode" class="btn-code-action">Clear Code</button>
+                      <button type="button" id="btnCopyAiContext" class="btn-code-action btn-ai-context">
+                        <span class="ai-context-icon">✨</span>
+                        <span id="btnCopyAiContextText">Copy AI Context</span>
+                      </button>
                     </div>
-                  </label>
-                  <div class="hint">For React, export a default component. For HTML, include any inline CSS/JS as needed.</div>
+                    <label>HTML or single React component (required)
+                      <div class="code-editor-container code-editor-tall">
+                        <div class="line-numbers" id="lineNumbers"></div>
+                        <textarea id="code" class="code" placeholder="Paste HTML or a React component (default export) here" required></textarea>
+                      </div>
+                    </label>
+                    <div class="hint">For React, export a default component. For HTML, include any inline CSS/JS as needed.</div>
+                    <div class="ai-context-hint">
+                      <span class="ai-hint-icon">💡</span>
+                      <span>Need code? Click "Copy AI Context" above, paste it into ChatGPT/Claude, then describe the app you want!</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Stage 3: Use & Improve -->
+            <div class="stage-content" data-stage-content="improve">
+              <div class="form-steps">
+                <div class="step" id="updateRequestStep">
+                  <div class="step-header">
+                    <div class="step-num">8</div>
+                    <div class="step-title">Request AI Update</div>
+                  </div>
+                  <div class="step-body">
+                    <p style="margin-bottom: 12px;">Generate a prompt to paste into your favorite AI assistant for help updating this project.</p>
+                    <button type="button" id="btnOpenUpdateRequest" class="btn-code-action btn-update-request">
+                      <span id="updateRequestBtnText">Request Update</span>
+                    </button>
+                    <div class="hint">Opens a dialog where you can describe what changes you want, then copy a ready-to-paste prompt.</div>
+                  </div>
+                </div>
+
+                <div class="improve-stage-info">
+                  <div class="improve-info-icon">💡</div>
+                  <div class="improve-info-text">
+                    <strong>Tip:</strong> Save your project first before using these features. The "Request Update" feature will include your latest saved code in the AI prompt.
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+
           <div class="modal-footer">
             <div class="actions">
               <button type="button" id="btnCancel">Cancel</button>
+              <button type="button" id="btnPrevStage" class="btn-stage-nav" style="display: none;">Back</button>
+              <button type="button" id="btnNextStage" class="btn-stage-nav">Next</button>
               <button type="submit" class="primary">Save</button>
             </div>
           </div>
@@ -636,6 +699,53 @@ Now, please help me create an app following these requirements.
             </div>
           </div>
         </form>
+      </div>
+    </div>
+
+    <div id="updateRequestModal" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="modal-content" style="max-width: 800px;">
+        <div class="modal-header">
+          <h2 id="updateRequestTitle">Request Project Update</h2>
+          <p class="modal-subtitle">Generate a prompt to paste into your favorite AI assistant</p>
+        </div>
+        <div class="modal-body">
+          <div class="form-steps">
+            <div class="step">
+              <div class="step-header">
+                <div class="step-num">1</div>
+                <div class="step-title">Describe what you want to build or change</div>
+              </div>
+              <div class="step-body">
+                <label>Your development request
+                  <textarea id="updateRequestInput" placeholder="e.g. Add a dark mode toggle, fix the save button, add form validation..." rows="4"></textarea>
+                </label>
+                <div class="hint">Be specific about what features or changes you want.</div>
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="step-header">
+                <div class="step-num">2</div>
+                <div class="step-title">Copy the generated prompt</div>
+              </div>
+              <div class="step-body">
+                <label>Generated prompt (includes your code and request)
+                  <div class="code-editor-container">
+                    <textarea id="generatedPrompt" class="code" readonly placeholder="Enter your request above and click 'Generate Prompt'"></textarea>
+                  </div>
+                </label>
+                <div class="hint">Paste this into ChatGPT, Claude, or any AI assistant to get updated code.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <div class="actions">
+            <button type="button" id="btnCancelUpdateRequest">Cancel</button>
+            <button type="button" id="btnGeneratePrompt" class="btn">Generate Prompt</button>
+            <button type="button" id="btnCopyGeneratedPrompt" class="primary" disabled>Copy to Clipboard</button>
+          </div>
+        </div>
       </div>
     </div>
 
