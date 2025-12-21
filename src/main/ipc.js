@@ -465,16 +465,45 @@ function initIpc(ipcMain, store, app, BrowserWindow) {
   ipcMain.handle('projects:delete', (event, id) => {
     const deleted = store.delete(id);
     if (deleted) {
+      const userBase = path.join(app.getPath('userData'), 'HostBuddy');
+      
       // Clean up cached offline-runs directory for this project
       try {
-        const userBase = path.join(app.getPath('userData'), 'HostBuddy');
         const offlineDir = path.join(userBase, 'offline-runs', String(id));
         if (fs.existsSync(offlineDir)) {
           fs.rmSync(offlineDir, { recursive: true, force: true });
         }
       } catch (cleanupErr) {
-        // Log but don't fail the delete operation if cleanup fails
         console.error('Failed to clean up offline cache for project:', id, cleanupErr);
+      }
+      
+      // Clean up old temp run directories (html-runs and react-runs older than 24 hours)
+      const maxAge = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+      const now = Date.now();
+      const tempDirs = ['html-runs', 'react-runs'];
+      
+      for (const tempDirName of tempDirs) {
+        try {
+          const tempBase = path.join(userBase, tempDirName);
+          if (!fs.existsSync(tempBase)) continue;
+          
+          const entries = fs.readdirSync(tempBase, { withFileTypes: true });
+          for (const entry of entries) {
+            if (!entry.isDirectory()) continue;
+            
+            const dirPath = path.join(tempBase, entry.name);
+            try {
+              const stats = fs.statSync(dirPath);
+              if (now - stats.mtimeMs > maxAge) {
+                fs.rmSync(dirPath, { recursive: true, force: true });
+              }
+            } catch (_) {
+              // Ignore errors for individual directory cleanup
+            }
+          }
+        } catch (cleanupErr) {
+          console.error('Failed to clean up temp directories:', tempDirName, cleanupErr);
+        }
       }
     }
     return deleted;

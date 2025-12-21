@@ -59,7 +59,7 @@
           <h2 id="modalTitle">Create Project</h2>
           <p class="modal-subtitle">Follow the steps to set up your project</p>
         </div>
-        <form id="projectForm">
+        <form id="projectForm" autocomplete="off">
           <!-- Stage Navigation -->
           <div class="stage-nav">
             <button type="button" class="stage-tab active" data-stage="setup">
@@ -89,7 +89,7 @@
                   </div>
                   <div class="step-body">
                     <label>Project title
-                      <input id="title" type="text" placeholder="My Project" required />
+                      <input id="title" type="text" placeholder="My Project" required autocomplete="off" />
                     </label>
                     <div class="hint">This name appears on your project card.</div>
                   </div>
@@ -102,7 +102,7 @@
                   </div>
                   <div class="step-body">
                     <label>Short description
-                      <textarea id="description" placeholder="What does it do?"></textarea>
+                      <textarea id="description" placeholder="What does it do?" autocomplete="off"></textarea>
                     </label>
                   </div>
                 </div>
@@ -169,7 +169,7 @@
                     <label>HTML or single React component (required)
                       <div class="code-editor-container code-editor-tall">
                         <div class="line-numbers" id="lineNumbers"></div>
-                        <textarea id="code" class="code" placeholder="Paste HTML or a React component (default export) here" required></textarea>
+                        <textarea id="code" class="code" placeholder="Paste HTML or a React component (default export) here" required autocomplete="off"></textarea>
                       </div>
                     </label>
                     <div class="hint">For React, export a default component. For HTML, include any inline CSS/JS as needed.</div>
@@ -686,10 +686,10 @@ Now, please help me create an app following these requirements.
           <h2>Create Folder</h2>
           <p class="modal-subtitle">Add a folder to organize your projects</p>
         </div>
-        <form id="folderForm">
+        <form id="folderForm" autocomplete="off">
           <div class="modal-body">
             <label>Folder name
-              <input id="folderNameInput" type="text" placeholder="e.g. Work" required />
+              <input id="folderNameInput" type="text" placeholder="e.g. Work" required autocomplete="off" />
             </label>
           </div>
           <div class="modal-footer">
@@ -717,7 +717,7 @@ Now, please help me create an app following these requirements.
               </div>
               <div class="step-body">
                 <label>Your development request
-                  <textarea id="updateRequestInput" placeholder="e.g. Add a dark mode toggle, fix the save button, add form validation..." rows="4"></textarea>
+                  <textarea id="updateRequestInput" placeholder="e.g. Add a dark mode toggle, fix the save button, add form validation..." rows="4" autocomplete="off"></textarea>
                 </label>
                 <div class="hint">Be specific about what features or changes you want.</div>
               </div>
