@@ -463,7 +463,21 @@ function initIpc(ipcMain, store, app, BrowserWindow) {
   });
 
   ipcMain.handle('projects:delete', (event, id) => {
-    return store.delete(id);
+    const deleted = store.delete(id);
+    if (deleted) {
+      // Clean up cached offline-runs directory for this project
+      try {
+        const userBase = path.join(app.getPath('userData'), 'HostBuddy');
+        const offlineDir = path.join(userBase, 'offline-runs', String(id));
+        if (fs.existsSync(offlineDir)) {
+          fs.rmSync(offlineDir, { recursive: true, force: true });
+        }
+      } catch (cleanupErr) {
+        // Log but don't fail the delete operation if cleanup fails
+        console.error('Failed to clean up offline cache for project:', id, cleanupErr);
+      }
+    }
+    return deleted;
   });
 
   ipcMain.handle('projects:run', async (event, id) => {

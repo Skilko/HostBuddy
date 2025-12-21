@@ -9,3 +9,5 @@ exports.default = async function notarizing(context) {
   console.log('Notarization not configured (no credentials)');
 };
 
+
+
