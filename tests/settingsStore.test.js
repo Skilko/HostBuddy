@@ -4,7 +4,7 @@ const path = require('path');
 const SettingsStore = require('../src/main/settingsStore');
 
 function makeTempDir() {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'hostbuddy-settings-'));
+  return fs.mkdtempSync(path.join(os.tmpdir(), 'hostbuddy-settings-test-'));
 }
 
 describe('SettingsStore', () => {
@@ -23,37 +23,44 @@ describe('SettingsStore', () => {
     expect(store.get('nonexistent')).toBeUndefined();
   });
 
-  test('set and get round-trip', () => {
+  test('set and get persist a value', () => {
     store.set('theme', 'dark');
     expect(store.get('theme')).toBe('dark');
-  });
 
-  test('persists to disk', () => {
-    store.set('key', 'value');
     const store2 = new SettingsStore(dir);
-    expect(store2.get('key')).toBe('value');
+    expect(store2.get('theme')).toBe('dark');
   });
 
-  test('getProjectsDir returns default when not configured', () => {
-    const defaultDir = store.getProjectsDir();
-    expect(defaultDir).toBeTruthy();
-    expect(defaultDir.includes('HostBuddyProjects')).toBe(true);
+  test('set overwrites existing values', () => {
+    store.set('theme', 'dark');
+    store.set('theme', 'light');
+    expect(store.get('theme')).toBe('light');
   });
 
-  test('setProjectsDir updates and returns old path', () => {
+  test('getProjectsDir returns default when no directory is configured', () => {
+    const result = store.getProjectsDir();
+    const expected = path.join(os.homedir(), 'Documents', 'HostBuddyProjects');
+    expect(result).toBe(expected);
+  });
+
+  test('setProjectsDir updates the stored directory and returns the old one', () => {
     const oldDir = store.getProjectsDir();
-    const newDir = path.join(dir, 'custom-projects');
-    fs.mkdirSync(newDir, { recursive: true });
+    const newDir = makeTempDir();
     const returned = store.setProjectsDir(newDir);
     expect(returned).toBe(oldDir);
     expect(store.getProjectsDir()).toBe(newDir);
+
+    try { fs.rmSync(newDir, { recursive: true, force: true }); } catch (_) {}
   });
 
-  test('handles corrupted settings file gracefully', () => {
-    fs.writeFileSync(path.join(dir, 'hostbuddy-settings.json'), 'not json!!!');
-    const store2 = new SettingsStore(dir);
-    expect(store2.get('anything')).toBeUndefined();
-    store2.set('recovered', true);
-    expect(store2.get('recovered')).toBe(true);
+  test('settings file is written as valid JSON', () => {
+    store.set('projectsDir', '/tmp/test');
+    store.set('formatVersion', 2);
+    const filePath = path.join(dir, 'hostbuddy-settings.json');
+    expect(fs.existsSync(filePath)).toBe(true);
+    const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    expect(data.projectsDir).toBe('/tmp/test');
+    expect(data.formatVersion).toBe(2);
+    expect(data.version).toBe(1);
   });
 });

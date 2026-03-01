@@ -1183,10 +1183,12 @@ document.addEventListener('drop', async (e) => {
   for (const file of files) {
     if (file.name.endsWith('.hbproject') || file.name.endsWith('.hbproj')) {
       try {
-        const res = await window.api.importProjects();
-        if (res && res.length) imported = true;
+        const filePath = file.path;
+        if (filePath) {
+          const res = await window.api.importProjectFile(filePath);
+          if (res) imported = true;
+        }
       } catch (_) {}
-      break;
     }
   }
   if (imported) await fetchAndRender();
