@@ -16,6 +16,7 @@
         </div>
       </div>
       <div style="display:flex; gap:10px; align-items:center;">
+        <button id="btnSettings" class="btn" title="Settings" aria-label="Settings">Settings</button>
         <button id="btnFeedback" class="btn">Feedback</button>
         <button id="btnGettingStarted" class="btn" style="background:#0b1022;border-color:#2c3657;">Getting Started</button>
         <button id="btnImport" class="btn">Import</button>
@@ -123,20 +124,6 @@
                 <div class="step">
                   <div class="step-header">
                     <div class="step-num">4</div>
-                    <div class="step-title">Attach files (optional)</div>
-                  </div>
-                  <div class="step-body">
-                    <label>Attach images, CSS, or JS files
-                      <input id="attachments" type="file" accept="image/*,.css,.js" multiple />
-                    </label>
-                    <div class="hint">These files will be embedded in your project and converted to data URIs at runtime.</div>
-                    <div id="attachmentsList" class="attachments-list"></div>
-                  </div>
-                </div>
-
-                <div class="step">
-                  <div class="step-header">
-                    <div class="step-num">5</div>
                     <div class="step-title">Set dependency mode</div>
                   </div>
                   <div class="step-body">
@@ -149,34 +136,60 @@
               </div>
             </div>
 
-            <!-- Stage 2: Manage Code -->
+            <!-- Stage 2: Add Files -->
             <div class="stage-content" data-stage-content="code">
               <div class="form-steps">
                 <div class="step step-full-height">
                   <div class="step-header">
-                    <div class="step-num">6</div>
-                    <div class="step-title">Paste your code</div>
+                    <div class="step-num">5</div>
+                    <div class="step-title">Add your files</div>
                   </div>
                   <div class="step-body">
-                    <div class="code-actions" style="margin-bottom: 10px;">
-                      <button type="button" id="btnPasteCode" class="btn-code-action">Paste from Clipboard</button>
-                      <button type="button" id="btnClearCode" class="btn-code-action">Clear Code</button>
-                      <button type="button" id="btnCopyAiContext" class="btn-code-action btn-ai-context">
-                        <span class="ai-context-icon">✨</span>
-                        <span id="btnCopyAiContextText">Copy AI Context</span>
-                      </button>
+                    <!-- Tab switcher: Drop Files / Paste Code -->
+                    <div class="code-input-tabs">
+                      <button type="button" class="code-input-tab active" data-input-tab="drop">Drop Files</button>
+                      <button type="button" class="code-input-tab" data-input-tab="paste">Paste Code</button>
                     </div>
-                    <label>HTML or single React component (required)
-                      <div class="code-editor-container code-editor-tall">
-                        <div class="line-numbers" id="lineNumbers"></div>
-                        <textarea id="code" class="code" placeholder="Paste HTML or a React component (default export) here" required autocomplete="off"></textarea>
+
+                    <!-- Drop Files tab -->
+                    <div class="code-input-panel active" data-input-panel="drop">
+                      <div id="dropZone" class="drop-zone">
+                        <div class="drop-zone-content">
+                          <div class="drop-zone-icon">
+                            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                          </div>
+                          <p class="drop-zone-text">Drop .html, .css, .js, or image files here</p>
+                          <p class="drop-zone-hint">or click to browse</p>
+                        </div>
+                        <input type="file" id="dropZoneInput" multiple accept=".html,.htm,.css,.js,.jsx,.tsx,.png,.jpg,.jpeg,.gif,.webp,.svg" style="display:none" />
                       </div>
-                    </label>
-                    <div class="hint">For React, export a default component. For HTML, include any inline CSS/JS as needed.</div>
-                    <div class="ai-context-hint">
-                      <span class="ai-hint-icon">💡</span>
-                      <span>Need code? Click "Copy AI Context" above, paste it into ChatGPT/Claude, then describe the app you want!</span>
+                      <input id="attachments" type="file" accept="image/*,.css,.js" multiple style="display:none" />
                     </div>
+
+                    <!-- Paste Code tab -->
+                    <div class="code-input-panel" data-input-panel="paste">
+                      <div class="code-actions" style="margin-bottom: 10px;">
+                        <button type="button" id="btnPasteCode" class="btn-code-action">Paste from Clipboard</button>
+                        <button type="button" id="btnClearCode" class="btn-code-action">Clear Code</button>
+                        <button type="button" id="btnCopyAiContext" class="btn-code-action btn-ai-context">
+                          <span class="ai-context-icon">✨</span>
+                          <span id="btnCopyAiContextText">Copy AI Context</span>
+                        </button>
+                      </div>
+                      <label>HTML or single React component (required)
+                        <div class="code-editor-container code-editor-tall">
+                          <div class="line-numbers" id="lineNumbers"></div>
+                          <textarea id="code" class="code" placeholder="Paste HTML or a React component (default export) here" autocomplete="off"></textarea>
+                        </div>
+                      </label>
+                      <div class="ai-context-hint">
+                        <span class="ai-hint-icon">💡</span>
+                        <span>Need code? Click "Copy AI Context" above, paste it into ChatGPT/Claude, then describe the app you want!</span>
+                      </div>
+                    </div>
+
+                    <!-- Unified file list (shown in both tabs) -->
+                    <div id="projectFilesList" class="project-files-list"></div>
                   </div>
                 </div>
               </div>
@@ -744,6 +757,41 @@ Now, please help me create an app following these requirements.
             <button type="button" id="btnCancelUpdateRequest">Cancel</button>
             <button type="button" id="btnGeneratePrompt" class="btn">Generate Prompt</button>
             <button type="button" id="btnCopyGeneratedPrompt" class="primary" disabled>Copy to Clipboard</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Global drop overlay for import -->
+    <div id="globalDropOverlay" class="global-drop-overlay hidden"><p>Drop .hbproject to import</p></div>
+
+    <div id="settingsModal" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="modal-content" style="max-width: 560px;">
+        <div class="modal-header">
+          <h2>Settings</h2>
+          <p class="modal-subtitle">Configure HostBuddy preferences</p>
+        </div>
+        <div class="modal-body">
+          <div class="form-steps">
+            <div class="step">
+              <div class="step-header">
+                <div class="step-num">1</div>
+                <div class="step-title">Projects Directory</div>
+              </div>
+              <div class="step-body">
+                <p style="margin:0 0 8px;">Where your .hbproject files are stored:</p>
+                <div style="display:flex; gap:8px; align-items:center;">
+                  <code id="settingsProjectsDir" style="flex:1; padding:8px 12px; background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:8px; font-size:12px; color:var(--text); word-break:break-all;">Loading...</code>
+                  <button type="button" id="btnChangeProjectsDir" class="btn">Change</button>
+                </div>
+                <div class="hint" style="margin-top:6px;">Changes take effect after restarting HostBuddy.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <div class="actions">
+            <button type="button" id="btnCloseSettings" class="primary">Close</button>
           </div>
         </div>
       </div>

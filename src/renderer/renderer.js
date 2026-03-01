@@ -29,6 +29,9 @@ const folderNameInput = document.getElementById('folderNameInput');
 const btnCancelFolder = document.getElementById('btnCancelFolder');
 const attachmentsEl = document.getElementById('attachments');
 const attachmentsList = document.getElementById('attachmentsList');
+const dropZone = document.getElementById('dropZone');
+const dropZoneInput = document.getElementById('dropZoneInput');
+const projectFilesList = document.getElementById('projectFilesList');
 const btnClearCode = document.getElementById('btnClearCode');
 const btnPasteCode = document.getElementById('btnPasteCode');
 const btnCopyAiContext = document.getElementById('btnCopyAiContext');
@@ -55,11 +58,13 @@ const DEFAULT_APP_ICON = '../../assets/default-app.png';
 
 let iconBase64 = null;
 let editProjectId = null;
-let selectedFolderId = null; // null means "All"
-let projectAttachments = []; // Array of { filename, mimeType, data }
-let updateRequestProject = null; // Project being updated via Request Update modal
-let currentEditProject = null; // Project currently being edited
-let currentStage = 'setup'; // Current stage in the project modal
+let selectedFolderId = null;
+let projectAttachments = [];
+let projectFiles = []; // Array of { filename, mimeType, data (base64 dataUri), isHtml }
+let mainFileIndex = 0;
+let updateRequestProject = null;
+let currentEditProject = null;
+let currentStage = 'setup';
 const stages = ['setup', 'code', 'improve'];
 
 function createLucideIcon(name) {
@@ -166,11 +171,20 @@ function hideModal() {
   editProjectId = null; 
   currentEditProject = null;
   projectAttachments = [];
+  projectFiles = [];
+  mainFileIndex = 0;
   renderAttachmentsList();
+  renderProjectFilesList();
   if (modalTitle) modalTitle.textContent = 'Create Project';
   updateLineNumbers();
-  // Reset to first stage
   switchToStage('setup');
+  // Reset code input tabs to "Drop Files"
+  document.querySelectorAll('.code-input-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.code-input-panel').forEach(p => p.classList.remove('active'));
+  const dropTab = document.querySelector('[data-input-tab="drop"]');
+  const dropPanel = document.querySelector('[data-input-panel="drop"]');
+  if (dropTab) dropTab.classList.add('active');
+  if (dropPanel) dropPanel.classList.add('active');
 }
 
 // Stage navigation functions
@@ -282,9 +296,11 @@ function openCreateModal() {
   form.reset();
   iconBase64 = null;
   projectAttachments = [];
+  projectFiles = [];
+  mainFileIndex = 0;
   renderAttachmentsList();
+  renderProjectFilesList();
   if (offlineEl) offlineEl.checked = false;
-  // Initialize stage navigation for new project
   switchToStage('setup');
   showModal();
 }
@@ -296,9 +312,11 @@ function closeGettingStarted() {
   if (gsModal) gsModal.classList.add('hidden');
 }
 
-function openEditModal(project) {
+async function openEditModal(projectSummary) {
+  const project = await window.api.getProject(projectSummary.id);
+  if (!project) { alert('Could not load project data.'); return; }
   editProjectId = project.id;
-  currentEditProject = project; // Store for update request modal
+  currentEditProject = project;
   if (modalTitle) modalTitle.textContent = 'Edit Project';
   titleEl.value = project.title || '';
   descEl.value = project.description || '';
@@ -308,7 +326,6 @@ function openEditModal(project) {
   projectAttachments = Array.isArray(project.attachments) ? [...project.attachments] : [];
   renderAttachmentsList();
   if (offlineEl) offlineEl.checked = !!project.offline;
-  // Initialize stage navigation for editing
   switchToStage('setup');
   showModal();
   updateLineNumbers();
@@ -339,7 +356,7 @@ async function fetchAndRender() {
     const avatar = document.createElement('img');
     avatar.className = 'avatar';
     avatar.alt = '';
-    avatar.src = p.iconBase64 || DEFAULT_APP_ICON;
+    avatar.src = p.thumbnailBase64 || p.iconBase64 || DEFAULT_APP_ICON;
     avatar.onerror = () => {
       // Fallback to placeholder on broken image
       if (avatar.parentElement) {
@@ -369,13 +386,13 @@ async function fetchAndRender() {
     };
     const editBtn = document.createElement('button'); editBtn.className = 'btn edit-controls'; editBtn.setAttribute('aria-label', 'Edit'); editBtn.title = 'Edit'; editBtn.appendChild(createLucideIcon('edit'));
     editBtn.onclick = () => openEditModal(p);
-    const exportBtn = document.createElement('button'); exportBtn.className = 'btn'; exportBtn.setAttribute('aria-label', 'Export'); exportBtn.title = 'Export'; exportBtn.appendChild(createLucideIcon('upload'));
+    const exportBtn = document.createElement('button'); exportBtn.className = 'btn'; exportBtn.setAttribute('aria-label', 'Export'); exportBtn.title = 'Export .hbproject'; exportBtn.appendChild(createLucideIcon('upload'));
     exportBtn.onclick = async () => {
-      try {
-        await window.api.exportProject(p.id);
-      } catch (e) {
-        alert('Export failed.');
-      }
+      try { await window.api.exportProject(p.id); } catch (e) { alert('Export failed.'); }
+    };
+    exportBtn.oncontextmenu = async (e) => {
+      e.preventDefault();
+      try { await window.api.exportProjectHtml(p.id); } catch (e) { alert('Export as HTML failed.'); }
     };
     const deleteBtn = document.createElement('button'); deleteBtn.className = 'btn delete edit-controls'; deleteBtn.setAttribute('aria-label', 'Delete'); deleteBtn.title = 'Delete'; deleteBtn.appendChild(createLucideIcon('trash'));
     deleteBtn.onclick = async () => {
@@ -827,10 +844,140 @@ iconEl.addEventListener('change', async (e) => {
 attachmentsEl && attachmentsEl.addEventListener('change', async (e) => {
   const files = e.target.files;
   if (!files || files.length === 0) return;
-  await handleAttachmentFiles(Array.from(files));
-  // Clear input so same file can be added again if needed
+  await handleDroppedFiles(Array.from(files));
   e.target.value = '';
 });
+
+// ---- Code input tab switching ----
+document.querySelectorAll('.code-input-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.code-input-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.code-input-panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    const panel = document.querySelector(`[data-input-panel="${tab.dataset.inputTab}"]`);
+    if (panel) panel.classList.add('active');
+    if (tab.dataset.inputTab === 'paste') setTimeout(updateLineNumbers, 0);
+  });
+});
+
+// ---- Drop zone ----
+function isHtmlFile(name) { return /\.(html?|htm)$/i.test(name); }
+function isImageFile(name) { return /\.(png|jpe?g|gif|webp|svg)$/i.test(name); }
+
+async function handleDroppedFiles(files) {
+  for (const file of files) {
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      const isHtml = isHtmlFile(file.name);
+      projectFiles.push({ filename: file.name, mimeType: file.type || 'application/octet-stream', data: dataUrl, isHtml });
+    } catch (err) {
+      alert(`Failed to read file: ${file.name}`);
+    }
+  }
+  autoSelectMainFile();
+  renderProjectFilesList();
+  syncFilesToCodeAndAttachments();
+}
+
+function autoSelectMainFile() {
+  const htmlFiles = projectFiles.filter(f => f.isHtml);
+  if (htmlFiles.length === 0) { mainFileIndex = -1; return; }
+  const indexFile = projectFiles.findIndex(f => f.isHtml && /^index\.html?$/i.test(f.filename));
+  if (indexFile >= 0) { mainFileIndex = indexFile; return; }
+  const first = projectFiles.findIndex(f => f.isHtml);
+  mainFileIndex = first >= 0 ? first : -1;
+}
+
+function syncFilesToCodeAndAttachments() {
+  if (mainFileIndex >= 0 && mainFileIndex < projectFiles.length) {
+    const mainFile = projectFiles[mainFileIndex];
+    const raw = mainFile.data;
+    const base64Part = raw.includes(',') ? raw.split(',')[1] : raw;
+    try { codeEl.value = atob(base64Part); } catch (_) { codeEl.value = ''; }
+    updateLineNumbers();
+  }
+  projectAttachments = projectFiles.filter((f, i) => i !== mainFileIndex && !f.isHtml).map(f => ({
+    filename: f.filename, mimeType: f.mimeType, data: f.data
+  }));
+}
+
+function renderProjectFilesList() {
+  if (!projectFilesList) return;
+  projectFilesList.innerHTML = '';
+  if (projectFiles.length === 0) return;
+
+  const header = document.createElement('div');
+  header.className = 'project-files-header';
+  header.textContent = `Project Files (${projectFiles.length})`;
+  projectFilesList.appendChild(header);
+
+  for (let i = 0; i < projectFiles.length; i++) {
+    const f = projectFiles[i];
+    const item = document.createElement('div');
+    item.className = 'project-file-item';
+
+    if (f.isHtml) {
+      const radio = document.createElement('input');
+      radio.type = 'radio';
+      radio.name = 'mainFile';
+      radio.className = 'file-radio';
+      radio.checked = (i === mainFileIndex);
+      radio.onchange = () => { mainFileIndex = i; syncFilesToCodeAndAttachments(); renderProjectFilesList(); };
+      item.appendChild(radio);
+    }
+
+    const info = document.createElement('div');
+    info.className = 'file-info';
+    const name = document.createElement('div');
+    name.className = 'file-name';
+    name.textContent = f.filename;
+    const size = document.createElement('div');
+    size.className = 'file-size';
+    const bytes = f.data ? Math.round((f.data.length * 3) / 4) : 0;
+    size.textContent = formatFileSize(bytes);
+    info.appendChild(name);
+    info.appendChild(size);
+    item.appendChild(info);
+
+    if (i === mainFileIndex) {
+      const badge = document.createElement('span');
+      badge.className = 'file-main-badge';
+      badge.textContent = 'Main';
+      item.appendChild(badge);
+    }
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'file-remove';
+    removeBtn.textContent = 'Remove';
+    removeBtn.onclick = () => {
+      projectFiles.splice(i, 1);
+      autoSelectMainFile();
+      renderProjectFilesList();
+      syncFilesToCodeAndAttachments();
+    };
+    item.appendChild(removeBtn);
+    projectFilesList.appendChild(item);
+  }
+}
+
+if (dropZone) {
+  dropZone.addEventListener('click', () => dropZoneInput && dropZoneInput.click());
+  dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) await handleDroppedFiles(Array.from(files));
+  });
+}
+if (dropZoneInput) {
+  dropZoneInput.addEventListener('change', async (e) => {
+    if (e.target.files && e.target.files.length > 0) await handleDroppedFiles(Array.from(e.target.files));
+    e.target.value = '';
+  });
+}
 
 // Clear code button
 btnClearCode && btnClearCode.addEventListener('click', () => {
@@ -907,26 +1054,24 @@ form.addEventListener('submit', async (e) => {
   const title = titleEl.value.trim();
   const description = descEl.value.trim();
   const code = codeEl.value;
-  if (!title || !code) { alert('Please provide Title and HTML/React code.'); return; }
+  if (!title) { alert('Please provide a project title.'); return; }
+  if (!code && projectFiles.length === 0) { alert('Please provide code or drop files.'); return; }
+  // Build the attachments list: non-main, non-HTML files from projectFiles + any manually added attachments
+  const allAttachments = [...projectAttachments];
+  for (const f of projectFiles) {
+    const idx = projectFiles.indexOf(f);
+    if (idx === mainFileIndex) continue;
+    if (f.isHtml) continue;
+    if (!allAttachments.some(a => a.filename === f.filename)) {
+      allAttachments.push({ filename: f.filename, mimeType: f.mimeType, data: f.data });
+    }
+  }
   if (editProjectId) {
-    const updates = { 
-      title, 
-      description, 
-      code, 
-      offline: !!(offlineEl && offlineEl.checked),
-      attachments: projectAttachments 
-    };
+    const updates = { title, description, code, offline: !!(offlineEl && offlineEl.checked), attachments: allAttachments };
     if (iconBase64) updates.iconBase64 = iconBase64;
     await window.api.updateProject(editProjectId, updates);
   } else {
-    await window.api.createProject({ 
-      title, 
-      description, 
-      iconBase64, 
-      code, 
-      offline: !!(offlineEl && offlineEl.checked),
-      attachments: projectAttachments
-    });
+    await window.api.createProject({ title, description, iconBase64, code, offline: !!(offlineEl && offlineEl.checked), attachments: allAttachments });
   }
   hideModal();
   await fetchAndRender();
@@ -957,6 +1102,94 @@ btnToggleEdit && btnToggleEdit.addEventListener('click', () => {
     document.body.classList.add('edit-hidden');
     btnToggleEdit.textContent = 'Edit';
   }
+});
+
+// ---- Settings modal ----
+const btnSettings = document.getElementById('btnSettings');
+const settingsModal = document.getElementById('settingsModal');
+const settingsProjectsDir = document.getElementById('settingsProjectsDir');
+const btnChangeProjectsDir = document.getElementById('btnChangeProjectsDir');
+const btnCloseSettings = document.getElementById('btnCloseSettings');
+
+async function openSettingsModal() {
+  if (!settingsModal) return;
+  settingsModal.classList.remove('hidden');
+  try {
+    const dir = await window.api.getProjectsDir();
+    if (settingsProjectsDir) settingsProjectsDir.textContent = dir || 'Default';
+  } catch (_) {}
+}
+
+btnSettings && btnSettings.addEventListener('click', openSettingsModal);
+btnCloseSettings && btnCloseSettings.addEventListener('click', () => settingsModal && settingsModal.classList.add('hidden'));
+
+btnChangeProjectsDir && btnChangeProjectsDir.addEventListener('click', async () => {
+  try {
+    const newDir = await window.api.setProjectsDir();
+    if (newDir && settingsProjectsDir) {
+      settingsProjectsDir.textContent = newDir;
+    }
+  } catch (_) {
+    alert('Failed to change directory.');
+  }
+});
+
+// ---- File association: import on open ----
+if (window.api.onImportFile) {
+  window.api.onImportFile(async (filePath) => {
+    try {
+      const res = await window.api.importProjectFile(filePath);
+      if (res && res.length) await fetchAndRender();
+    } catch (_) {}
+  });
+}
+
+// ---- Global drag-to-import for .hbproject files ----
+const globalDropOverlay = document.getElementById('globalDropOverlay');
+let dragCounter = 0;
+
+document.addEventListener('dragenter', (e) => {
+  if (modal && !modal.classList.contains('hidden')) return;
+  const items = e.dataTransfer && e.dataTransfer.items;
+  if (!items) return;
+  const hasHbproject = Array.from(items).some(i => i.kind === 'file');
+  if (hasHbproject) {
+    dragCounter++;
+    if (globalDropOverlay) globalDropOverlay.classList.remove('hidden');
+  }
+});
+
+document.addEventListener('dragleave', () => {
+  dragCounter--;
+  if (dragCounter <= 0) {
+    dragCounter = 0;
+    if (globalDropOverlay) globalDropOverlay.classList.add('hidden');
+  }
+});
+
+document.addEventListener('dragover', (e) => {
+  if (modal && !modal.classList.contains('hidden')) return;
+  e.preventDefault();
+});
+
+document.addEventListener('drop', async (e) => {
+  e.preventDefault();
+  dragCounter = 0;
+  if (globalDropOverlay) globalDropOverlay.classList.add('hidden');
+  if (modal && !modal.classList.contains('hidden')) return;
+  const files = e.dataTransfer && e.dataTransfer.files;
+  if (!files) return;
+  let imported = false;
+  for (const file of files) {
+    if (file.name.endsWith('.hbproject') || file.name.endsWith('.hbproj')) {
+      try {
+        const res = await window.api.importProjects();
+        if (res && res.length) imported = true;
+      } catch (_) {}
+      break;
+    }
+  }
+  if (imported) await fetchAndRender();
 });
 
 
