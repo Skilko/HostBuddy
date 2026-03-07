@@ -28,27 +28,27 @@ function coerceImportedProject(raw) {
   return { title, description, iconBase64, code, offline: false, attachments };
 }
 
-function initIpc(ipcMain, store, settingsStore, app, BrowserWindow) {
+function initIpc(ipcMain, initialStore, settingsStore, app, BrowserWindow) {
+  const ctx = { store: initialStore };
+
   // ---- Project CRUD ----
-  ipcMain.handle('projects:list', () => store.getAll());
-  ipcMain.handle('projects:get', (_event, id) => store.getById(id));
+  ipcMain.handle('projects:list', () => ctx.store.getAll());
+  ipcMain.handle('projects:get', (_event, id) => ctx.store.getById(id));
 
   ipcMain.handle('projects:create', (_event, payload) => {
     const { title, description, iconBase64, code, offline, attachments } = payload || {};
     if (!title || !code) throw new Error('Title and Code are required.');
-    return store.create({ title, description: description || '', iconBase64: iconBase64 || null, code, offline: !!offline, attachments });
+    return ctx.store.create({ title, description: description || '', iconBase64: iconBase64 || null, code, offline: !!offline, attachments });
   });
 
-  ipcMain.handle('projects:update', (_event, id, updates) => store.update(id, updates));
+  ipcMain.handle('projects:update', (_event, id, updates) => ctx.store.update(id, updates));
 
   ipcMain.handle('projects:delete', (_event, id) => {
-    const deleted = store.delete(id);
+    const deleted = ctx.store.delete(id);
     if (deleted) {
-      // Clean up any cached run directories
       const userBase = path.join(app.getPath('userData'), 'HostBuddy');
       try { const d = path.join(userBase, 'offline-runs', String(id)); if (fs.existsSync(d)) fs.rmSync(d, { recursive: true, force: true }); } catch (_) {}
-      // Clean up stable run directory
-      try { const d = path.join(store.projectsDir, '.runs', String(id)); if (fs.existsSync(d)) fs.rmSync(d, { recursive: true, force: true }); } catch (_) {}
+      try { const d = path.join(ctx.store.projectsDir, '.runs', String(id)); if (fs.existsSync(d)) fs.rmSync(d, { recursive: true, force: true }); } catch (_) {}
       // Clean up old temp run dirs older than 24h
       const maxAge = 24 * 60 * 60 * 1000;
       const now = Date.now();
@@ -69,25 +69,29 @@ function initIpc(ipcMain, store, settingsStore, app, BrowserWindow) {
 
   // ---- Run (stable per-project directory + session partition) ----
   const runnerPreloadPath = path.join(__dirname, 'runnerPreload.js');
-  let pendingRunnerState = null;
+  const pendingRunnerStates = new Map();
+  const activeRunners = new Map();
 
-  ipcMain.handle('runner:getState', () => {
-    const state = pendingRunnerState;
-    pendingRunnerState = null;
+  ipcMain.handle('runner:getState', (event) => {
+    const webContentsId = event.sender.id;
+    const state = pendingRunnerStates.get(webContentsId) || null;
+    pendingRunnerStates.delete(webContentsId);
     return state;
   });
 
   ipcMain.handle('projects:run', async (_event, id) => {
-    const project = store.getById(id);
+    const existing = activeRunners.get(id);
+    if (existing && !existing.isDestroyed()) {
+      existing.focus();
+      return true;
+    }
+
+    const project = ctx.store.getById(id);
     if (!project) throw new Error('Project not found');
 
-    // Stable run directory
-    const runsBase = path.join(store.projectsDir, '.runs');
+    const runsBase = path.join(ctx.store.projectsDir, '.runs');
     const runDir = path.join(runsBase, String(id));
     fs.mkdirSync(runDir, { recursive: true });
-
-    // Load saved state for this project (if any) from ZIP
-    pendingRunnerState = _loadProjectState(store.getProjectFilePath(id));
 
     const runner = new BrowserWindow({
       width: 1100, height: 800, title: project.title || 'Project',
@@ -99,10 +103,20 @@ function initIpc(ipcMain, store, settingsStore, app, BrowserWindow) {
       }
     });
 
-    // Capture state on close, thumbnail after load
-    runner.on('close', () => { _captureAndSaveState(runner, store, id); });
+    activeRunners.set(id, runner);
+    const savedState = _loadProjectState(ctx.store.getProjectFilePath(id));
+    pendingRunnerStates.set(runner.webContents.id, savedState);
+
+    runner.on('close', (event) => {
+      event.preventDefault();
+      _captureAndSaveState(runner, ctx.store, id).finally(() => {
+        activeRunners.delete(id);
+        runner.destroy();
+      });
+    });
+    runner.on('closed', () => { activeRunners.delete(id); });
     runner.webContents.on('did-finish-load', () => {
-      setTimeout(() => _captureThumbnail(runner, store, id), 2000);
+      setTimeout(() => _captureThumbnail(runner, ctx.store, id), 2000);
     });
 
     const userCode = project.code || '';
@@ -160,16 +174,16 @@ function initIpc(ipcMain, store, settingsStore, app, BrowserWindow) {
   });
 
   // ---- Folders ----
-  ipcMain.handle('folders:list', () => store.getFolders());
-  ipcMain.handle('folders:create', (_event, payload) => store.createFolder({ name: payload && payload.name ? String(payload.name).slice(0, 120) : 'New Folder' }));
-  ipcMain.handle('folders:rename', (_event, id, name) => store.renameFolder(id, String(name || '')));
-  ipcMain.handle('folders:delete', (_event, id) => store.deleteFolder(id));
+  ipcMain.handle('folders:list', () => ctx.store.getFolders());
+  ipcMain.handle('folders:create', (_event, payload) => ctx.store.createFolder({ name: payload && payload.name ? String(payload.name).slice(0, 120) : 'New Folder' }));
+  ipcMain.handle('folders:rename', (_event, id, name) => ctx.store.renameFolder(id, String(name || '')));
+  ipcMain.handle('folders:delete', (_event, id) => ctx.store.deleteFolder(id));
 
   // ---- Export (includes latest state snapshot) ----
   ipcMain.handle('projects:export', async (_event, id) => {
-    const fp = store.getProjectFilePath(id);
+    const fp = ctx.store.getProjectFilePath(id);
     if (!fp || !fs.existsSync(fp)) throw new Error('Project not found');
-    const project = store.getById(id);
+    const project = ctx.store.getById(id);
     const { canceled, filePath } = await dialog.showSaveDialog({
       title: 'Export Project', defaultPath: `${slugifyBase(project.title)}.hbproject`,
       filters: [{ name: 'HostBuddy Project', extensions: ['hbproject'] }]
@@ -191,7 +205,7 @@ function initIpc(ipcMain, store, settingsStore, app, BrowserWindow) {
 
   // ---- Export as standalone HTML ----
   ipcMain.handle('projects:exportHtml', async (_event, id) => {
-    const project = store.getById(id);
+    const project = ctx.store.getById(id);
     if (!project) throw new Error('Project not found');
     const base = slugifyBase(project.title);
     const { canceled, filePath } = await dialog.showSaveDialog({
@@ -218,10 +232,10 @@ function initIpc(ipcMain, store, settingsStore, app, BrowserWindow) {
     for (const fp of filePaths) {
       try {
         if (fp.endsWith('.hbproject')) {
-          const imported = _importZipProject(fp, store);
+          const imported = _importZipProject(fp, ctx.store);
           if (imported) results.push(imported);
         } else {
-          const imported = _importLegacyJson(fp, store);
+          const imported = _importLegacyJson(fp, ctx.store);
           results.push(...imported);
         }
       } catch (_) {}
@@ -234,10 +248,10 @@ function initIpc(ipcMain, store, settingsStore, app, BrowserWindow) {
     const results = [];
     try {
       if (filePath.endsWith('.hbproject')) {
-        const imported = _importZipProject(filePath, store);
+        const imported = _importZipProject(filePath, ctx.store);
         if (imported) results.push(imported);
       } else {
-        results.push(..._importLegacyJson(filePath, store));
+        results.push(..._importLegacyJson(filePath, ctx.store));
       }
     } catch (_) {}
     return results;
@@ -252,6 +266,8 @@ function initIpc(ipcMain, store, settingsStore, app, BrowserWindow) {
     if (canceled || !filePaths || filePaths.length === 0) return null;
     const newDir = filePaths[0];
     settingsStore.setProjectsDir(newDir);
+    const ProjectsStore = require('./projectsStore');
+    ctx.store = new ProjectsStore(newDir);
     return newDir;
   });
 
@@ -347,15 +363,15 @@ function _saveStateToZip(hbprojectPath, stateObj) {
   } catch (_) {}
 }
 
-function _captureAndSaveState(runner, store, projectId) {
+async function _captureAndSaveState(runner, store, projectId) {
   try {
-    runner.webContents.executeJavaScript('JSON.stringify(localStorage)').then(json => {
-      const state = JSON.parse(json);
-      if (state && Object.keys(state).length > 0) {
-        const fp = store.getProjectFilePath(projectId);
-        _saveStateToZip(fp, state);
-      }
-    }).catch(() => {});
+    if (runner.isDestroyed() || runner.webContents.isDestroyed()) return;
+    const json = await runner.webContents.executeJavaScript('JSON.stringify(localStorage)');
+    const state = JSON.parse(json);
+    if (state && Object.keys(state).length > 0) {
+      const fp = store.getProjectFilePath(projectId);
+      _saveStateToZip(fp, state);
+    }
   } catch (_) {}
 }
 
@@ -383,14 +399,8 @@ async function _captureThumbnail(runner, store, projectId) {
     zip.addFile('thumbnail.png', pngBuffer);
     zip.writeZip(fp);
 
-    // Update index cache with thumbnail as base64
     const thumbBase64 = `data:image/png;base64,${pngBuffer.toString('base64')}`;
-    const index = JSON.parse(fs.readFileSync(path.join(store.projectsDir, 'index.json'), 'utf-8'));
-    const entry = index.projects.find(p => p.id === projectId);
-    if (entry) {
-      entry.thumbnailBase64 = thumbBase64;
-      fs.writeFileSync(path.join(store.projectsDir, 'index.json'), JSON.stringify(index, null, 2));
-    }
+    store.updateIndexEntry(projectId, { thumbnailBase64: thumbBase64 });
   } catch (_) {}
 }
 

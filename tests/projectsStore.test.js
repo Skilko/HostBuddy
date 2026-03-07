@@ -103,8 +103,9 @@ describe('ProjectsStore (ZIP-based)', () => {
   test('rebuildIndex reconstructs from .hbproject files', () => {
     store.create({ title: 'A', code: '<p>A</p>' });
     store.create({ title: 'B', code: '<p>B</p>' });
-    // Corrupt the index
+    // Corrupt the index on disk and invalidate cache
     fs.writeFileSync(store.indexFile, '{}');
+    store.invalidateCache();
     expect(store.getAll().length).toBe(0);
     // Rebuild
     const rebuilt = store.rebuildIndex();
@@ -165,6 +166,66 @@ describe('ProjectsStore Folders', () => {
   });
 });
 
+describe('ProjectsStore Index Cache', () => {
+  let dir, store;
+  beforeEach(() => { dir = makeTempDir(); store = new ProjectsStore(dir); });
+  afterEach(() => { try { fs.rmSync(dir, { recursive: true, force: true }); } catch (_) {} });
+
+  test('repeated getAll calls use cache and return consistent results', () => {
+    store.create({ title: 'C1', code: '<p>1</p>' });
+    const a = store.getAll();
+    const b = store.getAll();
+    expect(a.length).toBe(1);
+    expect(b.length).toBe(1);
+    expect(a[0].id).toBe(b[0].id);
+  });
+
+  test('invalidateCache forces re-read from disk', () => {
+    store.create({ title: 'Fresh', code: '<p>F</p>' });
+    expect(store.getAll().length).toBe(1);
+    // External modification
+    fs.writeFileSync(store.indexFile, JSON.stringify({ version: 1, projects: [], folders: [] }));
+    expect(store.getAll().length).toBe(1); // still cached
+    store.invalidateCache();
+    expect(store.getAll().length).toBe(0); // re-read
+  });
+
+  test('updateIndexEntry modifies the entry and persists', () => {
+    const p = store.create({ title: 'Entry', code: '<p>E</p>' });
+    store.updateIndexEntry(p.id, { thumbnailBase64: 'data:image/png;base64,abc' });
+    const all = store.getAll();
+    expect(all[0].thumbnailBase64).toBe('data:image/png;base64,abc');
+    // Verify persisted
+    store.invalidateCache();
+    const all2 = store.getAll();
+    expect(all2[0].thumbnailBase64).toBe('data:image/png;base64,abc');
+  });
+});
+
+describe('ProjectsStore deleteFolder syncs ZIP manifests', () => {
+  let dir, store;
+  beforeEach(() => { dir = makeTempDir(); store = new ProjectsStore(dir); });
+  afterEach(() => { try { fs.rmSync(dir, { recursive: true, force: true }); } catch (_) {} });
+
+  test('deleteFolder clears folderId in both index and ZIP manifest', () => {
+    const f = store.createFolder({ name: 'TestFolder' });
+    const p = store.create({ title: 'Proj', code: '<p>P</p>' });
+    store.update(p.id, { folderId: f.id });
+
+    // Verify assignment
+    expect(store.getById(p.id).folderId).toBe(f.id);
+
+    // Delete folder
+    store.deleteFolder(f.id);
+
+    // Index should be cleared
+    expect(store.getAll().find(x => x.id === p.id).folderId).toBeNull();
+    // ZIP manifest should also be cleared
+    const full = store.getById(p.id);
+    expect(full.folderId).toBeNull();
+  });
+});
+
 describe('ProjectsStore Migration', () => {
   test('migrateFromLegacy converts old projects.json to .hbproject files', () => {
     const legacyBase = makeTempDir();
@@ -204,5 +265,36 @@ describe('ProjectsStore Migration', () => {
     const store = new ProjectsStore(dir);
     expect(store.migrateFromLegacy(dir)).toBe(false);
     try { fs.rmSync(dir, { recursive: true, force: true }); } catch (_) {}
+  });
+
+  test('migrateFromLegacy skips projects that already exist in the store', () => {
+    const legacyBase = makeTempDir();
+    const legacyDir = path.join(legacyBase, 'HostBuddy');
+    fs.mkdirSync(legacyDir, { recursive: true });
+
+    const newDir = makeTempDir();
+    const store = new ProjectsStore(newDir);
+
+    // Pre-create a project with the same ID
+    const preExisting = store.create({ title: 'Pre', code: '<p>Pre</p>' });
+
+    fs.writeFileSync(path.join(legacyDir, 'projects.json'), JSON.stringify({
+      projects: [
+        { id: preExisting.id, title: 'Duplicate', code: '<h1>Dup</h1>' },
+        { id: 'new-one', title: 'New', code: '<h1>New</h1>' }
+      ],
+      folders: []
+    }));
+
+    store.migrateFromLegacy(legacyBase);
+    const all = store.getAll();
+    expect(all.length).toBe(2);
+    const titles = all.map(p => p.title);
+    expect(titles).toContain('Pre');
+    expect(titles).toContain('New');
+    expect(titles).not.toContain('Duplicate');
+
+    try { fs.rmSync(legacyBase, { recursive: true, force: true }); } catch (_) {}
+    try { fs.rmSync(newDir, { recursive: true, force: true }); } catch (_) {}
   });
 });

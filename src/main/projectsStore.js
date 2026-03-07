@@ -6,6 +6,7 @@ class ProjectsStore {
   constructor(projectsDir) {
     this.projectsDir = projectsDir;
     this.indexFile = path.join(projectsDir, 'index.json');
+    this._indexCache = null;
     this._ensureStorage();
   }
 
@@ -16,23 +17,39 @@ class ProjectsStore {
     }
   }
 
-  // ---- Index read/write ----
+  // ---- Index read/write (cached) ----
 
   _readIndex() {
+    if (this._indexCache) return this._indexCache;
     try {
       const data = JSON.parse(fs.readFileSync(this.indexFile, 'utf-8'));
-      return {
+      this._indexCache = {
         version: data.version || 1,
         projects: Array.isArray(data.projects) ? data.projects : [],
         folders: Array.isArray(data.folders) ? data.folders : []
       };
+      return this._indexCache;
     } catch (_) {
       return { version: 1, projects: [], folders: [] };
     }
   }
 
   _writeIndex(data) {
+    this._indexCache = data;
     fs.writeFileSync(this.indexFile, JSON.stringify(data, null, 2));
+  }
+
+  invalidateCache() {
+    this._indexCache = null;
+  }
+
+  updateIndexEntry(projectId, updates) {
+    const index = this._readIndex();
+    const entry = index.projects.find(p => p.id === projectId);
+    if (!entry) return false;
+    Object.assign(entry, updates);
+    this._writeIndex(index);
+    return true;
   }
 
   _projectPath(filename) {
@@ -260,6 +277,7 @@ class ProjectsStore {
   }
 
   rebuildIndex() {
+    this._indexCache = null;
     const files = fs.readdirSync(this.projectsDir).filter(f => f.endsWith('.hbproject'));
     const existingFolders = this._readIndex().folders;
     const projects = [];
@@ -310,11 +328,26 @@ class ProjectsStore {
       if (p.folderId === id) {
         p.folderId = null;
         p.updatedAt = now;
+        this._updateZipManifestField(p.filename, 'folderId', null, now);
       }
     }
     index.folders = next;
     this._writeIndex(index);
     return true;
+  }
+
+  _updateZipManifestField(filename, field, value, updatedAt) {
+    if (!filename) return;
+    const fp = this._projectPath(filename);
+    try {
+      const zip = new AdmZip(fp);
+      const manifest = JSON.parse(zip.readAsText('manifest.json'));
+      manifest[field] = value;
+      if (updatedAt) manifest.updatedAt = updatedAt;
+      zip.deleteFile('manifest.json');
+      zip.addFile('manifest.json', Buffer.from(JSON.stringify(manifest, null, 2)));
+      zip.writeZip(fp);
+    } catch (_) {}
   }
 
   // ---- Migration from legacy projects.json ----
@@ -328,8 +361,11 @@ class ProjectsStore {
     const folders = Array.isArray(legacy.folders) ? legacy.folders : [];
     if (projects.length === 0 && folders.length === 0) return false;
 
+    const index = this._readIndex();
+
     for (const p of projects) {
       if (!p.id || !p.title) continue;
+      if (index.projects.some(existing => existing.id === p.id)) continue;
       const now = new Date().toISOString();
       const manifest = {
         id: p.id, title: p.title, description: p.description || '', version: 1,
@@ -342,22 +378,19 @@ class ProjectsStore {
         attachments: Array.isArray(p.attachments) ? p.attachments : []
       }).writeZip(this._projectPath(filename));
 
-      const index = this._readIndex();
       index.projects.push({
         id: p.id, title: p.title, description: p.description || '',
         iconBase64: p.iconBase64 || null, offline: !!p.offline,
         folderId: p.folderId || null, createdAt: manifest.createdAt,
         updatedAt: manifest.updatedAt, filename
       });
-      this._writeIndex(index);
     }
 
     if (folders.length > 0) {
-      const index = this._readIndex();
       index.folders = folders;
-      this._writeIndex(index);
     }
 
+    this._writeIndex(index);
     try { fs.renameSync(legacyFile, legacyFile + '.migrated'); } catch (_) {}
     return true;
   }

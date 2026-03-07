@@ -74,15 +74,20 @@ app.on('open-file', (event, filePath) => {
   }
 });
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   settingsStore = new SettingsStore(app.getPath('userData'));
   const projectsDir = settingsStore.getProjectsDir();
   projectsStore = new ProjectsStore(projectsDir);
 
-  projectsStore.migrateFromLegacy(app.getPath('userData'));
-
   createMainWindow();
   initIpc(ipcMain, projectsStore, settingsStore, app, BrowserWindow);
+
+  // Run migration after the window is visible so the app doesn't appear frozen
+  try {
+    projectsStore.migrateFromLegacy(app.getPath('userData'));
+  } catch (err) {
+    console.error('Migration failed:', err);
+  }
 
   // Windows/Linux: check argv for .hbproject file
   const fileArg = process.argv.find(a => a.endsWith('.hbproject'));

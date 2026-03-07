@@ -33,20 +33,24 @@ class SettingsStore {
   }
 
   getProjectsDir() {
+    if (this._resolvedDir) return this._resolvedDir;
     const dir = this.get('projectsDir');
     if (dir && typeof dir === 'string') {
       try {
         fs.mkdirSync(dir, { recursive: true });
+        this._resolvedDir = dir;
         return dir;
       } catch (_) {}
     }
     const defaultDir = path.join(os.homedir(), 'Documents', 'HostBuddyProjects');
     fs.mkdirSync(defaultDir, { recursive: true });
+    this._resolvedDir = defaultDir;
     return defaultDir;
   }
 
   setProjectsDir(newPath) {
     const old = this.getProjectsDir();
+    this._resolvedDir = null;
     this.set('projectsDir', newPath);
     return old;
   }

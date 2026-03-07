@@ -1,7 +1,10 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
   onImportFile: (callback) => ipcRenderer.on('import-file', (_event, filePath) => callback(filePath)),
+  getFilePathFromDrop: (file) => {
+    try { return webUtils.getPathForFile(file); } catch (_) { return file.path || ''; }
+  },
   listProjects: () => ipcRenderer.invoke('projects:list'),
   getProject: (id) => ipcRenderer.invoke('projects:get', id),
   createProject: (payload) => ipcRenderer.invoke('projects:create', payload),

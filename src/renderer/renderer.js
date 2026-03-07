@@ -1183,7 +1183,7 @@ document.addEventListener('drop', async (e) => {
   for (const file of files) {
     if (file.name.endsWith('.hbproject') || file.name.endsWith('.hbproj')) {
       try {
-        const filePath = file.path;
+        const filePath = window.api.getFilePathFromDrop ? window.api.getFilePathFromDrop(file) : file.path;
         if (filePath) {
           const res = await window.api.importProjectFile(filePath);
           if (res) imported = true;
