@@ -15,14 +15,22 @@
           <p class="subtitle">Run, manage & share simple AI-made apps safely on your computer</p>
         </div>
       </div>
-      <div style="display:flex; gap:10px; align-items:center;">
-        <button id="btnSettings" class="btn" title="Settings" aria-label="Settings">Settings</button>
-        <button id="btnFeedback" class="btn">Feedback</button>
-        <button id="btnGettingStarted" class="btn" style="background:#0b1022;border-color:#2c3657;">Getting Started</button>
-        <button id="btnImport" class="btn">Import</button>
-        <button id="btnToggleEdit" class="btn" title="Toggle edit controls" aria-label="Toggle edit controls">Edit</button>
-        <button id="btnNew" class="primary">New Project</button>
-      </div>
+      <nav class="header-actions" aria-label="Main actions">
+        <div class="action-group">
+          <button id="btnNew" class="primary">New Project</button>
+          <button id="btnImport" class="btn btn--secondary">Import</button>
+        </div>
+        <div class="action-divider" aria-hidden="true"></div>
+        <div class="action-group">
+          <button id="btnToggleEdit" class="btn" title="Toggle edit controls" aria-label="Toggle edit controls">Edit</button>
+        </div>
+        <div class="action-divider" aria-hidden="true"></div>
+        <div class="action-group">
+          <button id="btnGettingStarted" class="btn btn--subtle">Getting Started</button>
+          <button id="btnFeedback" class="btn btn--subtle">Feedback</button>
+          <button id="btnSettings" class="btn btn--icon" title="Settings" aria-label="Settings"></button>
+        </div>
+      </nav>
     </header>
 
     <main class="content">
@@ -114,10 +122,26 @@
                     <div class="step-title">Choose a picture (optional)</div>
                   </div>
                   <div class="step-body">
-                    <label>Project picture
-                      <input id="icon" type="file" accept="image/*" />
-                    </label>
-                    <div class="hint">Leave blank to keep the current picture when editing.</div>
+                    <div class="picture-options">
+                      <label class="radio-row">
+                        <input type="radio" name="pictureMode" value="default" checked />
+                        <span>Use HostBuddy icon</span>
+                      </label>
+                      <label class="radio-row">
+                        <input type="radio" name="pictureMode" value="screenshot" />
+                        <span>Use App Screenshot</span>
+                      </label>
+                      <label class="radio-row">
+                        <input type="radio" name="pictureMode" value="custom" />
+                        <span>Upload custom picture</span>
+                      </label>
+                    </div>
+                    <div id="customPictureInput" class="hidden">
+                      <label>Project picture
+                        <input id="icon" type="file" accept="image/*" />
+                      </label>
+                    </div>
+                    <div class="hint" id="pictureHint">The default HostBuddy icon will be used.</div>
                   </div>
                 </div>
 
@@ -198,24 +222,24 @@
             <!-- Stage 3: Use & Improve -->
             <div class="stage-content" data-stage-content="improve">
               <div class="form-steps">
-                <div class="step" id="updateRequestStep">
+                <div class="step" id="exportForAIStep">
                   <div class="step-header">
                     <div class="step-num">8</div>
-                    <div class="step-title">Request AI Update</div>
+                    <div class="step-title">Export for AI</div>
                   </div>
                   <div class="step-body">
-                    <p style="margin-bottom: 12px;">Generate a prompt to paste into your favorite AI assistant for help updating this project.</p>
-                    <button type="button" id="btnOpenUpdateRequest" class="btn-code-action btn-update-request">
-                      <span id="updateRequestBtnText">Request Update</span>
+                    <p style="margin-bottom: 12px;">Export this project as a Markdown file you can attach to any AI assistant (ChatGPT, Claude, Gemini, etc.) when requesting updates.</p>
+                    <button type="button" id="btnExportForAI" class="btn-code-action btn-export-ai">
+                      <span id="exportForAIBtnText">Export for AI</span>
                     </button>
-                    <div class="hint">Opens a dialog where you can describe what changes you want, then copy a ready-to-paste prompt.</div>
+                    <div class="hint">Saves a .md file containing all project code and context. Attach it to your AI chat and describe what you want to change.</div>
                   </div>
                 </div>
 
                 <div class="improve-stage-info">
                   <div class="improve-info-icon">💡</div>
                   <div class="improve-info-text">
-                    <strong>Tip:</strong> Save your project first before using these features. The "Request Update" feature will include your latest saved code in the AI prompt.
+                    <strong>Tip:</strong> Save your project first before exporting. The export includes all saved code and attached files as AI-ready context.
                   </div>
                 </div>
               </div>
@@ -712,53 +736,6 @@ Now, please help me create an app following these requirements.
             </div>
           </div>
         </form>
-      </div>
-    </div>
-
-    <div id="updateRequestModal" class="modal hidden" role="dialog" aria-modal="true">
-      <div class="modal-content" style="max-width: 800px;">
-        <div class="modal-header">
-          <h2 id="updateRequestTitle">Request Project Update</h2>
-          <p class="modal-subtitle">Generate a prompt to paste into your favorite AI assistant</p>
-        </div>
-        <div class="modal-body">
-          <div class="form-steps">
-            <div class="step">
-              <div class="step-header">
-                <div class="step-num">1</div>
-                <div class="step-title">Describe what you want to build or change</div>
-              </div>
-              <div class="step-body">
-                <label>Your development request
-                  <textarea id="updateRequestInput" placeholder="e.g. Add a dark mode toggle, fix the save button, add form validation..." rows="4" autocomplete="off"></textarea>
-                </label>
-                <div class="hint">Be specific about what features or changes you want.</div>
-              </div>
-            </div>
-
-            <div class="step">
-              <div class="step-header">
-                <div class="step-num">2</div>
-                <div class="step-title">Copy the generated prompt</div>
-              </div>
-              <div class="step-body">
-                <label>Generated prompt (includes your code and request)
-                  <div class="code-editor-container">
-                    <textarea id="generatedPrompt" class="code" readonly placeholder="Enter your request above and click 'Generate Prompt'"></textarea>
-                  </div>
-                </label>
-                <div class="hint">Paste this into ChatGPT, Claude, or any AI assistant to get updated code.</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <div class="actions">
-            <button type="button" id="btnCancelUpdateRequest">Cancel</button>
-            <button type="button" id="btnGeneratePrompt" class="btn">Generate Prompt</button>
-            <button type="button" id="btnCopyGeneratedPrompt" class="primary" disabled>Copy to Clipboard</button>
-          </div>
-        </div>
       </div>
     </div>
 

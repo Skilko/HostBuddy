@@ -8,6 +8,7 @@ const btnNew2 = document.getElementById('btnNew2');
 const btnFeedback = document.getElementById('btnFeedback');
 const btnImport = document.getElementById('btnImport');
 const btnToggleEdit = document.getElementById('btnToggleEdit');
+const btnSettings = document.getElementById('btnSettings');
 const modal = document.getElementById('modal');
 const form = document.getElementById('projectForm');
 const btnCancel = document.getElementById('btnCancel');
@@ -37,32 +38,29 @@ const btnPasteCode = document.getElementById('btnPasteCode');
 const btnCopyAiContext = document.getElementById('btnCopyAiContext');
 const btnCopyAiContextText = document.getElementById('btnCopyAiContextText');
 const versionBadge = document.getElementById('versionBadge');
-const updateRequestStep = document.getElementById('updateRequestStep');
-const btnOpenUpdateRequest = document.getElementById('btnOpenUpdateRequest');
-const updateRequestModal = document.getElementById('updateRequestModal');
+const exportForAIStep = document.getElementById('exportForAIStep');
+const btnExportForAI = document.getElementById('btnExportForAI');
 const stageTabs = document.querySelectorAll('.stage-tab');
 const stageContents = document.querySelectorAll('.stage-content');
 const stageConnectors = document.querySelectorAll('.stage-connector');
 const btnPrevStage = document.getElementById('btnPrevStage');
 const btnNextStage = document.getElementById('btnNextStage');
 const stageImproveTab = document.getElementById('stageImproveTab');
-const updateRequestTitle = document.getElementById('updateRequestTitle');
-const updateRequestInput = document.getElementById('updateRequestInput');
-const generatedPrompt = document.getElementById('generatedPrompt');
-const btnCancelUpdateRequest = document.getElementById('btnCancelUpdateRequest');
-const btnGeneratePrompt = document.getElementById('btnGeneratePrompt');
-const btnCopyGeneratedPrompt = document.getElementById('btnCopyGeneratedPrompt');
+
+const customPictureInput = document.getElementById('customPictureInput');
+const pictureHint = document.getElementById('pictureHint');
+const pictureModeRadios = document.querySelectorAll('input[name="pictureMode"]');
 
 // Default icon used when a project has no uploaded icon
 const DEFAULT_APP_ICON = '../../assets/default-app.png';
 
 let iconBase64 = null;
+let pictureMode = 'default'; // 'default' | 'screenshot' | 'custom'
 let editProjectId = null;
 let selectedFolderId = null;
 let projectAttachments = [];
 let projectFiles = []; // Array of { filename, mimeType, data (base64 dataUri), isHtml }
 let mainFileIndex = 0;
-let updateRequestProject = null;
 let currentEditProject = null;
 let currentStage = 'setup';
 const stages = ['setup', 'code', 'improve'];
@@ -129,6 +127,13 @@ function createLucideIcon(name) {
       svg.appendChild(p('M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z'));
       svg.appendChild(p('M5 19l1 3 1-3 3-1-3-1-1-3-1 3-3 1 3 1z'));
       svg.appendChild(p('M19 13l.5 1.5 1.5.5-1.5.5-.5 1.5-.5-1.5L17 15l1.5-.5.5-1.5z'));
+      break;
+    }
+    case 'settings': {
+      svg.appendChild(p('M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z'));
+      const c = document.createElementNS(NS, 'circle');
+      c.setAttribute('cx', '12'); c.setAttribute('cy', '12'); c.setAttribute('r', '3');
+      svg.appendChild(c);
       break;
     }
   }
@@ -301,6 +306,9 @@ function openCreateModal() {
   renderAttachmentsList();
   renderProjectFilesList();
   if (offlineEl) offlineEl.checked = false;
+  const defaultRadio = document.querySelector('input[name="pictureMode"][value="default"]');
+  if (defaultRadio) defaultRadio.checked = true;
+  setPictureMode('default');
   switchToStage('setup');
   showModal();
 }
@@ -326,6 +334,11 @@ async function openEditModal(projectSummary) {
   projectAttachments = Array.isArray(project.attachments) ? [...project.attachments] : [];
   renderAttachmentsList();
   if (offlineEl) offlineEl.checked = !!project.offline;
+  // Restore picture mode from project data
+  const mode = project.useAppScreenshot ? 'screenshot' : (project.iconBase64 ? 'custom' : 'default');
+  const radio = document.querySelector(`input[name="pictureMode"][value="${mode}"]`);
+  if (radio) radio.checked = true;
+  setPictureMode(mode);
   switchToStage('setup');
   showModal();
   updateLineNumbers();
@@ -356,7 +369,9 @@ async function fetchAndRender() {
     const avatar = document.createElement('img');
     avatar.className = 'avatar';
     avatar.alt = '';
-    avatar.src = p.thumbnailBase64 || p.iconBase64 || DEFAULT_APP_ICON;
+    avatar.src = p.useAppScreenshot && p.thumbnailBase64
+      ? p.thumbnailBase64
+      : (p.iconBase64 || DEFAULT_APP_ICON);
     avatar.onerror = () => {
       // Fallback to placeholder on broken image
       if (avatar.parentElement) {
@@ -549,6 +564,14 @@ addIconToButton(btnNew, 'plus');
 addIconToButton(btnNew2, 'plus');
 addIconToButton(document.getElementById('btnImport2'), 'import');
 
+// Settings is icon-only — add icon without margin
+if (btnSettings) {
+  const icon = createLucideIcon('settings');
+  icon.setAttribute('width', '18');
+  icon.setAttribute('height', '18');
+  btnSettings.prepend(icon);
+}
+
 btnFeedback && btnFeedback.addEventListener('click', async () => {
   try {
     await window.api.openFeedback();
@@ -603,130 +626,6 @@ folderForm && folderForm.addEventListener('submit', async (e) => {
     await fetchAndRender();
   } catch (e) {
     alert('Could not create folder.');
-  }
-});
-
-// --- Update Request Modal Functions ---
-function openUpdateRequestModal(project) {
-  if (!updateRequestModal) return;
-  updateRequestProject = project;
-  if (updateRequestTitle) {
-    updateRequestTitle.textContent = `Request Update: ${project.title}`;
-  }
-  if (updateRequestInput) {
-    updateRequestInput.value = '';
-  }
-  if (generatedPrompt) {
-    generatedPrompt.value = '';
-  }
-  if (btnCopyGeneratedPrompt) {
-    btnCopyGeneratedPrompt.disabled = true;
-  }
-  updateRequestModal.classList.remove('hidden');
-  if (updateRequestInput) {
-    setTimeout(() => updateRequestInput.focus(), 0);
-  }
-}
-
-function closeUpdateRequestModal() {
-  if (!updateRequestModal) return;
-  updateRequestModal.classList.add('hidden');
-  updateRequestProject = null;
-  if (updateRequestInput) updateRequestInput.value = '';
-  if (generatedPrompt) generatedPrompt.value = '';
-  if (btnCopyGeneratedPrompt) btnCopyGeneratedPrompt.disabled = true;
-}
-
-// Condensed HostBuddy context for update requests
-const UPDATE_REQUEST_CONTEXT = `You are helping update an existing HostBuddy project. HostBuddy is a desktop app that runs AI-generated HTML and React applications locally.
-
-## OUTPUT FORMAT REQUIREMENTS
-Provide code in ONE of these formats:
-
-**Option 1: HTML (for simple apps)**
-- A complete, self-contained HTML document
-- Include all CSS in <style> tags and JavaScript in <script> tags
-
-**Option 2: React (for interactive apps)**
-- A single .tsx or .jsx file with a default export
-- Format: \`export default function App() { return (...) }\`
-- You can import from npm packages (react, react-dom, lucide-react, recharts)
-
-## ARCHITECTURE CONSTRAINTS
-- Must be CLIENT-SIDE ONLY - no backend servers or API endpoints
-- Use localStorage or IndexedDB for data persistence
-- All functionality must work offline after initial load
-- No external URLs or CDN links - all assets must be inline
-
-## STYLING
-- For HTML: Use inline styles or <style> tags
-- For React: Tailwind classes work via Twind runtime
-
-## IMPORTANT
-- Preserve any existing functionality unless explicitly asked to remove it
-- Maintain the same code format (HTML or React) as the original
-- Output the COMPLETE updated code, not just the changes`;
-
-function generateUpdatePrompt() {
-  if (!updateRequestProject || !updateRequestInput) return '';
-  
-  const userRequest = updateRequestInput.value.trim();
-  if (!userRequest) {
-    alert('Please enter your development request.');
-    return '';
-  }
-  
-  const projectCode = updateRequestProject.code || '';
-  
-  const prompt = `${UPDATE_REQUEST_CONTEXT}
-
----
-
-## CURRENT PROJECT CODE
-
-\`\`\`
-${projectCode}
-\`\`\`
-
----
-
-## DEVELOPMENT REQUEST
-
-${userRequest}
-
----
-
-Please provide the complete updated code that implements the requested changes.`;
-
-  return prompt;
-}
-
-btnCancelUpdateRequest && btnCancelUpdateRequest.addEventListener('click', closeUpdateRequestModal);
-
-btnGeneratePrompt && btnGeneratePrompt.addEventListener('click', () => {
-  const prompt = generateUpdatePrompt();
-  if (prompt && generatedPrompt) {
-    generatedPrompt.value = prompt;
-    if (btnCopyGeneratedPrompt) {
-      btnCopyGeneratedPrompt.disabled = false;
-    }
-  }
-});
-
-btnCopyGeneratedPrompt && btnCopyGeneratedPrompt.addEventListener('click', async () => {
-  if (!generatedPrompt || !generatedPrompt.value) return;
-  
-  try {
-    await navigator.clipboard.writeText(generatedPrompt.value);
-    const originalText = btnCopyGeneratedPrompt.textContent;
-    btnCopyGeneratedPrompt.textContent = 'Copied!';
-    btnCopyGeneratedPrompt.disabled = true;
-    setTimeout(() => {
-      btnCopyGeneratedPrompt.textContent = originalText;
-      btnCopyGeneratedPrompt.disabled = false;
-    }, 2000);
-  } catch (err) {
-    alert('Failed to copy to clipboard. Please select and copy the text manually.');
   }
 });
 
@@ -839,6 +738,24 @@ iconEl.addEventListener('change', async (e) => {
     iconBase64 = null;
     alert('Could not read image. Please try a different file.');
   }
+});
+
+// ---- Picture mode radio handling ----
+function setPictureMode(mode) {
+  pictureMode = mode;
+  if (customPictureInput) customPictureInput.classList.toggle('hidden', mode !== 'custom');
+  if (mode !== 'custom') { iconBase64 = null; if (iconEl) iconEl.value = ''; }
+  if (pictureHint) {
+    const hints = {
+      default: 'The default HostBuddy icon will be used.',
+      screenshot: 'The picture updates each time you run the project.',
+      custom: 'Upload an image to use as the project picture.'
+    };
+    pictureHint.textContent = hints[mode] || '';
+  }
+}
+pictureModeRadios.forEach(radio => {
+  radio.addEventListener('change', () => setPictureMode(radio.value));
 });
 
 attachmentsEl && attachmentsEl.addEventListener('change', async (e) => {
@@ -1034,19 +951,17 @@ btnCopyAiContext && btnCopyAiContext.addEventListener('click', async () => {
   }
 });
 
-// Open update request modal from edit modal
-btnOpenUpdateRequest && btnOpenUpdateRequest.addEventListener('click', () => {
+// Export for AI from edit modal
+btnExportForAI && btnExportForAI.addEventListener('click', async () => {
   if (!currentEditProject) {
-    alert('Please save the project first before requesting an update.');
+    alert('Please save the project first before exporting for AI.');
     return;
   }
-  // Use the latest code from the textarea in case user has made edits
-  const projectWithLatestCode = {
-    ...currentEditProject,
-    code: codeEl.value || currentEditProject.code,
-    title: titleEl.value || currentEditProject.title
-  };
-  openUpdateRequestModal(projectWithLatestCode);
+  try {
+    await window.api.exportProjectForAI(currentEditProject.id);
+  } catch (e) {
+    alert('Export failed: ' + (e.message || e));
+  }
 });
 
 form.addEventListener('submit', async (e) => {
@@ -1066,12 +981,14 @@ form.addEventListener('submit', async (e) => {
       allAttachments.push({ filename: f.filename, mimeType: f.mimeType, data: f.data });
     }
   }
+  const useAppScreenshot = pictureMode === 'screenshot';
   if (editProjectId) {
-    const updates = { title, description, code, offline: !!(offlineEl && offlineEl.checked), attachments: allAttachments };
-    if (iconBase64) updates.iconBase64 = iconBase64;
+    const updates = { title, description, code, offline: !!(offlineEl && offlineEl.checked), attachments: allAttachments, useAppScreenshot };
+    if (pictureMode === 'custom' && iconBase64) updates.iconBase64 = iconBase64;
+    if (pictureMode !== 'custom') updates.iconBase64 = null;
     await window.api.updateProject(editProjectId, updates);
   } else {
-    await window.api.createProject({ title, description, iconBase64, code, offline: !!(offlineEl && offlineEl.checked), attachments: allAttachments });
+    await window.api.createProject({ title, description, iconBase64: pictureMode === 'custom' ? iconBase64 : null, code, offline: !!(offlineEl && offlineEl.checked), attachments: allAttachments, useAppScreenshot });
   }
   hideModal();
   await fetchAndRender();
@@ -1095,17 +1012,17 @@ loadVersion();
 // Edit controls visibility toggle (default hidden)
 document.body.classList.add('edit-hidden');
 btnToggleEdit && btnToggleEdit.addEventListener('click', () => {
+  const textNode = Array.from(btnToggleEdit.childNodes).find(n => n.nodeType === Node.TEXT_NODE);
   if (document.body.classList.contains('edit-hidden')) {
     document.body.classList.remove('edit-hidden');
-    btnToggleEdit.textContent = 'Done';
+    if (textNode) textNode.textContent = 'Done';
   } else {
     document.body.classList.add('edit-hidden');
-    btnToggleEdit.textContent = 'Edit';
+    if (textNode) textNode.textContent = 'Edit';
   }
 });
 
 // ---- Settings modal ----
-const btnSettings = document.getElementById('btnSettings');
 const settingsModal = document.getElementById('settingsModal');
 const settingsProjectsDir = document.getElementById('settingsProjectsDir');
 const btnChangeProjectsDir = document.getElementById('btnChangeProjectsDir');

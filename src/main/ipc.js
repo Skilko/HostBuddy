@@ -28,6 +28,96 @@ function coerceImportedProject(raw) {
   return { title, description, iconBase64, code, offline: false, attachments };
 }
 
+const HOSTBUDDY_AI_CONTEXT = `You are helping update an existing HostBuddy project. HostBuddy is a desktop app that runs AI-generated HTML and React applications locally.
+
+## OUTPUT FORMAT REQUIREMENTS
+Provide code in ONE of these formats:
+
+**Option 1: HTML (for simple apps)**
+- A complete, self-contained HTML document
+- Include all CSS in <style> tags and JavaScript in <script> tags
+
+**Option 2: React (for interactive apps)**
+- A single .tsx or .jsx file with a default export
+- Format: \`export default function App() { return (...) }\`
+- You can import from npm packages (react, react-dom, lucide-react, recharts)
+
+## ARCHITECTURE CONSTRAINTS
+- Must be CLIENT-SIDE ONLY - no backend servers or API endpoints
+- Use localStorage or IndexedDB for data persistence
+- All functionality must work offline after initial load
+- No external URLs or CDN links - all assets must be inline
+
+## STYLING
+- For HTML: Use inline styles or <style> tags
+- For React: Tailwind classes work via Twind runtime
+
+## IMPORTANT
+- Preserve any existing functionality unless explicitly asked to remove it
+- Maintain the same code format (HTML or React) as the original
+- Output the COMPLETE updated code, not just the changes`;
+
+const TEXT_ATTACHMENT_EXTS = /\.(css|js|jsx|tsx|json|svg)$/i;
+
+function _extLang(filename) {
+  const ext = (filename.match(/\.(\w+)$/) || [])[1] || '';
+  const map = { css: 'css', js: 'javascript', jsx: 'jsx', tsx: 'tsx', json: 'json', svg: 'xml' };
+  return map[ext.toLowerCase()] || ext.toLowerCase();
+}
+
+function buildAiContextMarkdown(project) {
+  const lines = [];
+  lines.push(`# HostBuddy Project: ${project.title || 'Untitled'}\n`);
+
+  if (project.description) {
+    lines.push(`## Project Description\n\n${project.description}\n`);
+  }
+
+  lines.push(`## HostBuddy Context\n\n${HOSTBUDDY_AI_CONTEXT}\n`);
+
+  lines.push(`## Project Files\n`);
+  const mainFile = project.mainFile || 'index.html';
+  lines.push(`### ${mainFile} (main entry)\n\n\`\`\`html\n${project.code || ''}\n\`\`\`\n`);
+
+  const textAtts = [];
+  const binaryAtts = [];
+
+  for (const att of (project.attachments || [])) {
+    if (TEXT_ATTACHMENT_EXTS.test(att.filename)) {
+      const match = att.data && att.data.match(/^data:[^;]*;base64,(.*)$/);
+      if (match) {
+        try {
+          const content = Buffer.from(match[1], 'base64').toString('utf8');
+          textAtts.push({ filename: att.filename, content });
+        } catch (_) { binaryAtts.push(att); }
+      } else {
+        binaryAtts.push(att);
+      }
+    } else {
+      binaryAtts.push(att);
+    }
+  }
+
+  for (const f of textAtts) {
+    lines.push(`### ${f.filename}\n\n\`\`\`${_extLang(f.filename)}\n${f.content}\n\`\`\`\n`);
+  }
+
+  if (binaryAtts.length > 0) {
+    lines.push(`## Binary Assets (reference by filename, do not modify)\n`);
+    for (const att of binaryAtts) {
+      lines.push(`- ${att.filename} (${att.mimeType || 'application/octet-stream'})`);
+    }
+    lines.push('');
+  }
+
+  lines.push(`## Response Format\n`);
+  lines.push(`Provide the complete updated code for each file, clearly labeled with the filename.`);
+  lines.push(`If adding new files, indicate they are new.`);
+  lines.push(`Maintain the same code format (HTML or React) as the original.\n`);
+
+  return lines.join('\n');
+}
+
 function initIpc(ipcMain, initialStore, settingsStore, app, BrowserWindow) {
   const ctx = { store: initialStore };
 
@@ -36,9 +126,9 @@ function initIpc(ipcMain, initialStore, settingsStore, app, BrowserWindow) {
   ipcMain.handle('projects:get', (_event, id) => ctx.store.getById(id));
 
   ipcMain.handle('projects:create', (_event, payload) => {
-    const { title, description, iconBase64, code, offline, attachments } = payload || {};
+    const { title, description, iconBase64, code, offline, attachments, useAppScreenshot } = payload || {};
     if (!title || !code) throw new Error('Title and Code are required.');
-    return ctx.store.create({ title, description: description || '', iconBase64: iconBase64 || null, code, offline: !!offline, attachments });
+    return ctx.store.create({ title, description: description || '', iconBase64: iconBase64 || null, code, offline: !!offline, attachments, useAppScreenshot: !!useAppScreenshot });
   });
 
   ipcMain.handle('projects:update', (_event, id, updates) => ctx.store.update(id, updates));
@@ -215,6 +305,21 @@ function initIpc(ipcMain, initialStore, settingsStore, app, BrowserWindow) {
     if (canceled || !filePath) return false;
     const html = ensureHtmlDocument(preprocessHtmlWithAttachments(project.code || '', project.attachments));
     fs.writeFileSync(filePath, html, 'utf8');
+    return true;
+  });
+
+  // ---- Export for AI (Markdown context file) ----
+  ipcMain.handle('projects:exportForAI', async (_event, id) => {
+    const project = ctx.store.getById(id);
+    if (!project) throw new Error('Project not found');
+    const base = slugifyBase(project.title);
+    const { canceled, filePath } = await dialog.showSaveDialog({
+      title: 'Export for AI', defaultPath: `${base}-ai-context.md`,
+      filters: [{ name: 'Markdown', extensions: ['md'] }, { name: 'Text', extensions: ['txt'] }]
+    });
+    if (canceled || !filePath) return false;
+    const md = buildAiContextMarkdown(project);
+    fs.writeFileSync(filePath, md, 'utf8');
     return true;
   });
 
@@ -404,4 +509,4 @@ async function _captureThumbnail(runner, store, projectId) {
   } catch (_) {}
 }
 
-module.exports = { initIpc };
+module.exports = { initIpc, buildAiContextMarkdown };

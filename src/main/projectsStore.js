@@ -159,7 +159,8 @@ class ProjectsStore {
       id: p.id, title: p.title, description: p.description,
       iconBase64: p.iconBase64 || null, offline: !!p.offline,
       folderId: p.folderId || null, createdAt: p.createdAt, updatedAt: p.updatedAt,
-      thumbnailBase64: p.thumbnailBase64 || null
+      thumbnailBase64: p.thumbnailBase64 || null,
+      useAppScreenshot: !!p.useAppScreenshot
     }));
   }
 
@@ -177,17 +178,19 @@ class ProjectsStore {
         offline: !!manifest.offline, attachments,
         folderId: manifest.folderId || null,
         createdAt: manifest.createdAt, updatedAt: manifest.updatedAt,
-        mainFile: manifest.mainFile || 'index.html'
+        mainFile: manifest.mainFile || 'index.html',
+        useAppScreenshot: !!manifest.useAppScreenshot
       };
     } catch (_) { return null; }
   }
 
-  create({ title, description, iconBase64, code, offline, attachments }) {
+  create({ title, description, iconBase64, code, offline, attachments, useAppScreenshot }) {
     const id = this.generateId();
     const now = new Date().toISOString();
     const manifest = {
       id, title, description: description || '', version: 1,
       mainFile: 'index.html', offline: !!offline,
+      useAppScreenshot: !!useAppScreenshot,
       folderId: null, createdAt: now, updatedAt: now
     };
     const filename = `${this._slugify(title)}-${this._shortId()}.hbproject`;
@@ -197,13 +200,14 @@ class ProjectsStore {
     const index = this._readIndex();
     index.projects.push({
       id, title, description: description || '', iconBase64: iconBase64 || null,
-      offline: !!offline, folderId: null, createdAt: now, updatedAt: now, filename
+      offline: !!offline, useAppScreenshot: !!useAppScreenshot,
+      folderId: null, createdAt: now, updatedAt: now, filename
     });
     this._writeIndex(index);
 
     return {
       id, title, description: description || '', iconBase64: iconBase64 || null,
-      code, offline: !!offline,
+      code, offline: !!offline, useAppScreenshot: !!useAppScreenshot,
       attachments: Array.isArray(attachments) ? attachments : [],
       folderId: null, createdAt: now, updatedAt: now
     };
@@ -226,6 +230,7 @@ class ProjectsStore {
       title: updates.title !== undefined ? updates.title : m.title,
       description: updates.description !== undefined ? updates.description : m.description,
       offline: updates.offline !== undefined ? !!updates.offline : m.offline,
+      useAppScreenshot: updates.useAppScreenshot !== undefined ? !!updates.useAppScreenshot : !!m.useAppScreenshot,
       folderId: updates.folderId !== undefined ? updates.folderId : m.folderId,
       updatedAt: now
     };
@@ -247,7 +252,8 @@ class ProjectsStore {
 
     index.projects[idx] = {
       ...entry, title: newManifest.title, description: newManifest.description,
-      iconBase64: newIcon || entry.iconBase64, offline: newManifest.offline,
+      iconBase64: newIcon, offline: newManifest.offline,
+      useAppScreenshot: newManifest.useAppScreenshot,
       folderId: newManifest.folderId, updatedAt: now
     };
     this._writeIndex(index);
@@ -255,6 +261,7 @@ class ProjectsStore {
     return {
       id, title: newManifest.title, description: newManifest.description,
       iconBase64: newIcon || null, code: newCode, offline: newManifest.offline,
+      useAppScreenshot: newManifest.useAppScreenshot,
       attachments: Array.isArray(newAtts) ? newAtts : [],
       folderId: newManifest.folderId, createdAt: newManifest.createdAt, updatedAt: now
     };

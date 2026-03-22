@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('api', {
   runProject: (id) => ipcRenderer.invoke('projects:run', id),
   exportProject: (id) => ipcRenderer.invoke('projects:export', id),
   exportProjectHtml: (id) => ipcRenderer.invoke('projects:exportHtml', id),
+  exportProjectForAI: (id) => ipcRenderer.invoke('projects:exportForAI', id),
   importProjects: () => ipcRenderer.invoke('projects:import'),
   importProjectFile: (filePath) => ipcRenderer.invoke('projects:importFile', filePath),
   openFeedback: () => ipcRenderer.invoke('app:openFeedback'),

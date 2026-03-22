@@ -16,8 +16,8 @@ let pendingOpenFile = null;
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
-    width: 1100,
-    height: 800,
+    width: 1210,
+    height: 880,
     minWidth: 900,
     minHeight: 600,
     title: 'HostBuddy',
