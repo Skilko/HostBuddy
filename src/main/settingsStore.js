@@ -73,6 +73,15 @@ class SettingsStore {
   setMcpPort(port) {
     this.set('mcpPort', port);
   }
+
+  getTheme() {
+    const val = this.get('theme');
+    return val === 'light' || val === 'dark' ? val : null;
+  }
+
+  setTheme(theme) {
+    this.set('theme', theme === 'light' ? 'light' : 'dark');
+  }
 }
 
 module.exports = SettingsStore;

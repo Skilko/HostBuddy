@@ -337,6 +337,9 @@ function initIpc(ipcMain, initialStore, settingsStore, app, BrowserWindow) {
     enabled: settingsStore.getMcpEnabled(),
     port: settingsStore.getMcpPort(),
   }));
+
+  ipcMain.handle('settings:getTheme', () => settingsStore.getTheme());
+  ipcMain.handle('settings:setTheme', (_event, theme) => settingsStore.setTheme(theme));
 }
 
 function _importZipProject(fp, store) {

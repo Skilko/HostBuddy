@@ -33,17 +33,6 @@
 
         <div class="action-divider" aria-hidden="true"></div>
 
-        <!-- Edit toggle -->
-        <label class="edit-toggle" title="Toggle edit controls" aria-label="Toggle edit controls">
-          <input type="checkbox" id="btnToggleEdit" />
-          <span class="edit-toggle__track">
-            <span class="edit-toggle__knob"></span>
-          </span>
-          <span class="edit-toggle__label">Edit</span>
-        </label>
-
-        <div class="action-divider" aria-hidden="true"></div>
-
         <!-- MCP status pill -->
         <button class="mcp-status-btn" id="mcpStatusBtn" aria-label="MCP Server status — click to configure">
           <span class="mcp-dot" id="mcpDot"></span>
@@ -67,6 +56,16 @@
               Feedback
             </button>
             <div class="dropdown-divider" role="separator"></div>
+            <button id="btnToggleEdit" class="dropdown-item" role="menuitem" aria-pressed="false">
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 1 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              <span id="editLabel">Edit Mode: Off</span>
+            </button>
+            <div class="dropdown-divider" role="separator"></div>
+            <button id="btnToggleTheme" class="dropdown-item" role="menuitem" aria-pressed="false">
+              <svg id="themeIcon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+              <span id="themeLabel">Light Mode</span>
+            </button>
+            <div class="dropdown-divider" role="separator"></div>
             <button id="btnSettings" class="dropdown-item" role="menuitem">
               <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
               Settings
@@ -85,7 +84,15 @@
         <nav id="foldersList" class="folders"></nav>
       </aside>
       <section class="main">
-        <div id="projectsGrid" class="grid"></div>
+        <!-- Startup skeleton — visible until the first fetchAndRender completes -->
+        <div id="startupLoader" class="startup-loader" aria-hidden="true">
+          <div class="skeleton-grid">
+            <div class="skeleton-card"><div class="skeleton-row"><div class="skeleton-avatar"></div><div class="skeleton-text-block"><div class="skeleton-line skeleton-line--title"></div><div class="skeleton-line skeleton-line--desc"></div></div></div><div class="skeleton-actions"><div class="skeleton-btn"></div><div class="skeleton-btn"></div></div></div>
+            <div class="skeleton-card"><div class="skeleton-row"><div class="skeleton-avatar"></div><div class="skeleton-text-block"><div class="skeleton-line skeleton-line--title"></div><div class="skeleton-line skeleton-line--desc"></div></div></div><div class="skeleton-actions"><div class="skeleton-btn"></div><div class="skeleton-btn"></div></div></div>
+            <div class="skeleton-card"><div class="skeleton-row"><div class="skeleton-avatar"></div><div class="skeleton-text-block"><div class="skeleton-line skeleton-line--title"></div><div class="skeleton-line skeleton-line--desc"></div></div></div><div class="skeleton-actions"><div class="skeleton-btn"></div><div class="skeleton-btn"></div></div></div>
+          </div>
+        </div>
+        <div id="projectsGrid" class="grid hidden"></div>
         <div id="emptyState" class="empty hidden">
           <h2>No projects yet</h2>
           <p>Create your first project to get started.</p>

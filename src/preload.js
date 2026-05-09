@@ -29,5 +29,7 @@ contextBridge.exposeInMainWorld('api', {
   setMcpEnabled: (enabled) => ipcRenderer.invoke('mcp:setEnabled', enabled),
   setMcpPort: (port) => ipcRenderer.invoke('mcp:setPort', port),
   onMcpStatusChanged: (callback) => ipcRenderer.on('mcp:status-changed', (_event, status) => callback(status)),
+  getTheme: () => ipcRenderer.invoke('settings:getTheme'),
+  setTheme: (theme) => ipcRenderer.invoke('settings:setTheme', theme),
   platform: process.platform,
 });

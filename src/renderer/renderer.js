@@ -13,6 +13,8 @@ const btnFeedback = document.getElementById('btnFeedback');
 const btnImport = document.getElementById('btnImport');
 const btnToggleEdit = document.getElementById('btnToggleEdit');
 const btnSettings = document.getElementById('btnSettings');
+const btnToggleTheme = document.getElementById('btnToggleTheme');
+const themeLabel = document.getElementById('themeLabel');
 const modal = document.getElementById('modal');
 const form = document.getElementById('projectForm');
 const btnCancel = document.getElementById('btnCancel');
@@ -28,6 +30,7 @@ const btnCloseGs = document.getElementById('btnCloseGs');
 const btnCopyPromptTemplate = document.getElementById('btnCopyPromptTemplate');
 const promptTemplate = document.getElementById('promptTemplate');
 const loadingOverlay = document.getElementById('loadingOverlay');
+const startupLoader = document.getElementById('startupLoader');
 const folderModal = document.getElementById('folderModal');
 const folderForm = document.getElementById('folderForm');
 const folderNameInput = document.getElementById('folderNameInput');
@@ -1057,7 +1060,12 @@ form.addEventListener('submit', async (e) => {
   await fetchAndRender();
 });
 
-fetchAndRender();
+// Initial load — dismiss the skeleton loader once the first render completes
+(async () => {
+  await fetchAndRender();
+  if (startupLoader) startupLoader.classList.add('hidden');
+  if (grid) grid.classList.remove('hidden');
+})();
 
 // Load and display version
 async function loadVersion() {
@@ -1074,12 +1082,20 @@ loadVersion();
 
 // Edit controls visibility toggle (default hidden)
 document.body.classList.add('edit-hidden');
-btnToggleEdit && btnToggleEdit.addEventListener('change', () => {
-  if (btnToggleEdit.checked) {
-    document.body.classList.remove('edit-hidden');
-  } else {
+btnToggleEdit && btnToggleEdit.addEventListener('click', () => {
+  const isEditing = !document.body.classList.contains('edit-hidden');
+  if (isEditing) {
     document.body.classList.add('edit-hidden');
+    btnToggleEdit.setAttribute('aria-pressed', 'false');
+    const lbl = document.getElementById('editLabel');
+    if (lbl) lbl.textContent = 'Edit Mode: Off';
+  } else {
+    document.body.classList.remove('edit-hidden');
+    btnToggleEdit.setAttribute('aria-pressed', 'true');
+    const lbl = document.getElementById('editLabel');
+    if (lbl) lbl.textContent = 'Edit Mode: On';
   }
+  closeDropdown(overflowMenu, btnOverflow);
 });
 
 // ---- Settings modal ----
@@ -1101,6 +1117,60 @@ async function openSettingsModal() {
 btnSettings && btnSettings.addEventListener('click', () => {
   closeDropdown(overflowMenu, btnOverflow);
   openSettingsModal();
+});
+
+// ---- Light / Dark mode toggle ----
+const MOON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+const SUN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+
+function applyTheme(isLight) {
+  if (isLight) {
+    document.documentElement.classList.add('light-mode');
+  } else {
+    document.documentElement.classList.remove('light-mode');
+  }
+  if (themeLabel) themeLabel.textContent = isLight ? 'Dark Mode' : 'Light Mode';
+  if (btnToggleTheme) {
+    const svgContainer = btnToggleTheme.querySelector('svg');
+    if (svgContainer) {
+      const temp = document.createElement('span');
+      temp.innerHTML = isLight ? MOON_SVG : SUN_SVG;
+      svgContainer.replaceWith(temp.firstElementChild);
+    }
+    btnToggleTheme.setAttribute('aria-pressed', String(isLight));
+  }
+}
+
+// Restore saved preference on load
+(function initTheme() {
+  // Apply localStorage value immediately (synchronous) to prevent any flash.
+  const cached = localStorage.getItem('hb-theme');
+  if (cached) applyTheme(cached === 'light');
+
+  // Confirm from the persistent settings store and correct if needed.
+  if (window.api && window.api.getTheme) {
+    window.api.getTheme().then(saved => {
+      if (saved) {
+        localStorage.setItem('hb-theme', saved);
+        applyTheme(saved === 'light');
+      } else if (!cached) {
+        // No saved value anywhere — default to dark.
+        applyTheme(false);
+      }
+    }).catch(() => {});
+  } else if (!cached) {
+    applyTheme(false);
+  }
+})();
+
+btnToggleTheme && btnToggleTheme.addEventListener('click', () => {
+  const isCurrentlyLight = document.documentElement.classList.contains('light-mode');
+  const next = !isCurrentlyLight;
+  const value = next ? 'light' : 'dark';
+  localStorage.setItem('hb-theme', value);
+  if (window.api && window.api.setTheme) window.api.setTheme(value);
+  applyTheme(next);
+  closeDropdown(overflowMenu, btnOverflow);
 });
 btnCloseSettings && btnCloseSettings.addEventListener('click', () => settingsModal && settingsModal.classList.add('hidden'));
 
