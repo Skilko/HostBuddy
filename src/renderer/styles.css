@@ -1738,3 +1738,21 @@ textarea.code:focus {
 }
 .toggle-switch input:checked + .toggle-slider { background: var(--accent); }
 .toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+/* Subtle BBAI watermark in bottom-right corner of the app background */
+body::after {
+  content: '';
+  position: fixed;
+  bottom: -10px;
+  right: -10px;
+  width: 135px;
+  height: 135px;
+  background-image: url('../../assets/bbai_logo_nobackground.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: bottom right;
+  opacity: 0.07;
+  filter: grayscale(60%);
+  pointer-events: none;
+  z-index: 0;
+}
