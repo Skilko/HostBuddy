@@ -470,8 +470,8 @@ body:not(.edit-hidden) .edit-controls .btn.delete {
   z-index: 400;
   display: grid;
   place-items: center;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(6px);
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(3px);
   overflow: auto;
   animation: backdropIn 0.2s ease;
 }
@@ -481,15 +481,15 @@ body:not(.edit-hidden) .edit-controls .btn.delete {
   width: min(860px, 92vw);
   max-height: 90vh;
   height: 90vh;
-  background: rgba(11, 18, 36, 0.97);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #0d1525;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 18px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   box-shadow:
-    0 24px 80px rgba(0, 0, 0, 0.6),
-    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 8px 24px rgba(0, 0, 0, 0.35),
+    0 2px 8px rgba(0, 0, 0, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
   animation: modalIn 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -498,7 +498,7 @@ body:not(.edit-hidden) .edit-controls .btn.delete {
 .modal-header {
   padding: 20px 24px 16px 24px;
   border-bottom: 1px solid var(--border);
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(11, 18, 36, 0.97));
+  background: #101b2e;
   flex-shrink: 0;
   position: sticky;
   top: 0;
@@ -518,13 +518,13 @@ body:not(.edit-hidden) .edit-controls .btn.delete {
   margin: 0 0 4px 0;
   font-size: 20px;
   font-weight: 700;
-  color: var(--text);
+  color: #ffffff;
 }
 
 .modal-subtitle {
   margin: 0;
   font-size: 14px;
-  color: var(--muted);
+  color: #b0b8c8;
 }
 
 /* Close button */
@@ -562,13 +562,35 @@ body:not(.edit-hidden) .edit-controls .btn.delete {
   overflow: auto;
   flex: 1 1 auto;
   min-height: 0;
+  position: relative;
+  isolation: isolate;
+  background: linear-gradient(120deg, #0b1022, #0e1228);
+}
+
+.modal-body::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.18) 1px, transparent 1px);
+  background-size: 40px 40px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 40%, black 20%, transparent 100%);
+  mask-image: radial-gradient(ellipse 70% 70% at 50% 40%, black 20%, transparent 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.modal-body > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* Modal Footer */
 .modal-footer {
   padding: 16px 24px 20px 24px;
   border-top: 1px solid var(--border);
-  background: linear-gradient(0deg, rgba(11, 18, 36, 0.97), rgba(15, 23, 42, 0.95));
+  background: #101b2e;
   flex-shrink: 0;
   position: sticky;
   bottom: 0;
@@ -576,29 +598,29 @@ body:not(.edit-hidden) .edit-controls .btn.delete {
 }
 
 .modal-content > form { display: flex; flex-direction: column; gap: 0; min-height: 0; flex: 1 1 auto; }
-label { display: grid; gap: 6px; font-size: 14px; color: var(--muted); }
+label { display: grid; gap: 6px; font-size: 14px; color: #b8c2d0; }
 input[type="text"], textarea {
   width: 100%;
   padding: 10px 14px;
-  background: rgba(10, 15, 32, 0.8);
-  border: 1px solid rgba(31, 42, 68, 0.8);
-  color: var(--text);
+  background: #080d1a;
+  border: 1px solid #253048;
+  color: #f1f5f9;
   border-radius: 10px;
   font-size: 14px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 input[type="text"]:hover, textarea:hover {
-  border-color: rgba(79, 70, 229, 0.3);
-  background: rgba(10, 15, 32, 0.95);
+  border-color: rgba(79, 70, 229, 0.4);
+  background: #070c18;
 }
 input[type="text"]:focus, textarea:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
-  background: rgba(10, 15, 32, 1);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.18);
+  background: #070c18;
 }
 input[type="text"]::placeholder, textarea::placeholder {
-  color: rgba(156, 163, 175, 0.5);
+  color: rgba(156, 163, 175, 0.55);
 }
 
 /* Code Editor with Line Numbers */
@@ -732,8 +754,7 @@ textarea.code:focus {
   padding: 16px 24px;
   gap: 0;
   border-bottom: 1px solid var(--border);
-  background: rgba(0, 0, 0, 0.25);
-  backdrop-filter: blur(4px);
+  background: #0a1220;
 }
 
 .stage-tab {
@@ -817,14 +838,14 @@ textarea.code:focus {
 /* Step-form layout in Create Project modal */
 .form-steps { display: grid; gap: 14px; }
 .step {
-  border: 1px solid var(--border);
+  border: 1px solid #1e2d45;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(16, 24, 42, 0.7);
   transition: border-color 0.2s ease, background 0.2s ease;
 }
 .step:hover {
-  border-color: rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(16, 24, 42, 0.85);
 }
 .step-header { display: flex; align-items: center; gap: 10px; padding: 14px 14px 0 14px; }
 .step-num {
@@ -842,7 +863,7 @@ textarea.code:focus {
 .step-title { font-weight: 700; color: var(--text); font-size: 14px; }
 .step-body { padding: 10px 14px 14px 14px; display: grid; gap: 8px; }
 .step-body label { margin: 0; }
-.hint { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.hint { color: #a0aab8; font-size: 12px; line-height: 1.5; }
 .checkbox-row { display: flex; align-items: center; gap: 8px; }
 .radio-row {
   display: flex;
@@ -1628,9 +1649,9 @@ textarea.code:focus {
 /* ---- Settings section layout ---- */
 .settings-section {
   padding: 16px;
-  border: 1px solid var(--border);
+  border: 1px solid #1e2d45;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(16, 24, 42, 0.7);
 }
 
 .settings-section-title {

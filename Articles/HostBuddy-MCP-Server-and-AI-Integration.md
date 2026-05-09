@@ -1,14 +1,15 @@
-# HostBuddy: Building an MCP Server, AI Context Export, and a Platform-Aware UI
+# HostBuddy v2.0: Building an MCP Server, AI Context Export, and a Platform-Aware UI
 
 **Date:** May 2026  
-**Scope:** Post v1.4.0 — commits `470ef39` through `6e7c96b` (since `88b712a`)  
-**Status:** In development (package version 1.4.0)
+**Version:** v2.0  
+**Scope:** commits `470ef39` through `6e7c96b` (since `88b712a`)  
+**Status:** Released
 
 ---
 
 ## Executive Summary
 
-Following the architectural overhaul of project storage in v1.4.0, I turned my attention to the question of how HostBuddy should integrate with the broader AI ecosystem. The apps HostBuddy runs are themselves AI-generated — but updating or extending them requires the user to manually copy code, paste it into an AI chat, explain the project context, and then paste the result back. That friction felt wrong for a tool designed around AI-generated software.
+Following the architectural overhaul of project storage in v1.4.0, HostBuddy v2.0 turns its attention to the question of how the application should integrate with the broader AI ecosystem. The apps HostBuddy runs are themselves AI-generated — but updating or extending them requires the user to manually copy code, paste it into an AI chat, explain the project context, and then paste the result back. That friction felt wrong for a tool designed around AI-generated software.
 
 This phase of development introduces three interconnected capabilities:
 
@@ -16,7 +17,7 @@ This phase of development introduces three interconnected capabilities:
 2. **An AI context export feature** — a one-click way to generate a structured Markdown document containing a project's full code, attachments, and context constraints, ready to paste into any AI assistant.
 3. **A significantly improved application shell** — platform-aware native title bar chrome, a reorganised toolbar with a split-button and overflow menu, a live MCP status indicator, and improved project card picture management.
 
-What I built here represents a meaningful step: HostBuddy is no longer just a runtime for AI apps — it is now an MCP-capable host that AI tools can integrate with directly.
+What this release represents is a meaningful step-change: HostBuddy v2.0 is no longer just a runtime for AI apps — it is now an MCP-capable host that AI tools can integrate with directly.
 
 ---
 
@@ -531,7 +532,7 @@ The split-button caret dropdown and the overflow menu both needed to close when 
 
 ## Future Considerations
 
-- **Version bump to v1.5.0** — the current package version remains at 1.4.0. The MCP server addition represents enough new capability to warrant a minor version increment.
+- **Package version alignment** — the package version should be updated to `2.0.0` to reflect this release.
 - **MCP `update_project` with attachment support** — the current `update_project` tool accepts code and text fields but not binary attachments. Extending it to support base64-encoded assets would allow AI tools to add images to projects programmatically.
 - **Persistent MCP server across restarts** — currently the port change requires a HostBuddy restart. An in-process server restart (stop → update port → start) could apply the change immediately.
 - **MCP authentication** — the server currently accepts connections from any process on localhost. Adding optional bearer token authentication would be appropriate if HostBuddy is ever used in a shared or multi-user environment.
