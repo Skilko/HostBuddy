@@ -16,12 +16,23 @@ let projectsStore;
 let pendingOpenFile = null;
 
 function createMainWindow() {
+  const isMac = process.platform === 'darwin';
+  const isWin = process.platform === 'win32';
+
+  // Header height: icon (36px) + top padding (16px) + bottom padding (16px) = 68px
+  const HEADER_HEIGHT = 68;
+
   mainWindow = new BrowserWindow({
     width: 1210,
     height: 880,
     minWidth: 900,
     minHeight: 600,
     title: 'HostBuddy',
+    titleBarStyle: 'hidden',
+    // macOS: traffic lights positioned with equal spacing from left and top edges
+    ...(isMac && { trafficLightPosition: { x: 16, y: 16 } }),
+    // Windows: native caption buttons (min/max/close) overlaid in top-right, coloured to match header
+    ...(isWin && { titleBarOverlay: { color: '#162038', symbolColor: '#e5e7eb', height: HEADER_HEIGHT } }),
     webPreferences: {
       preload: path.join(__dirname, '..', 'preload.js'),
       nodeIntegration: false,

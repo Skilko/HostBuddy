@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>HostBuddy</title>
     <link rel="stylesheet" href="styles.css" />
+    <script>if (window.api) document.documentElement.classList.add('platform-' + window.api.platform);</script>
   </head>
   <body>
     <header class="app-header">
@@ -16,19 +17,61 @@
         </div>
       </div>
       <nav class="header-actions" aria-label="Main actions">
-        <div class="action-group">
-          <button id="btnNew" class="primary">New Project</button>
-          <button id="btnImport" class="btn btn--secondary">Import</button>
+        <!-- New Project split-button -->
+        <div class="split-btn-wrapper" id="newProjectWrapper">
+          <button id="btnNew" class="primary split-btn__main">New Project</button>
+          <button id="btnNewCaret" class="primary split-btn__caret" aria-label="More project options" aria-haspopup="true" aria-expanded="false">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div id="newProjectMenu" class="dropdown-menu hidden" role="menu">
+            <button id="btnImport" class="dropdown-item" role="menuitem">
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Import Project
+            </button>
+          </div>
         </div>
+
         <div class="action-divider" aria-hidden="true"></div>
-        <div class="action-group">
-          <button id="btnToggleEdit" class="btn" title="Toggle edit controls" aria-label="Toggle edit controls">Edit</button>
-        </div>
+
+        <!-- Edit toggle -->
+        <label class="edit-toggle" title="Toggle edit controls" aria-label="Toggle edit controls">
+          <input type="checkbox" id="btnToggleEdit" />
+          <span class="edit-toggle__track">
+            <span class="edit-toggle__knob"></span>
+          </span>
+          <span class="edit-toggle__label">Edit</span>
+        </label>
+
         <div class="action-divider" aria-hidden="true"></div>
-        <div class="action-group">
-          <button id="btnGettingStarted" class="btn btn--subtle">Getting Started</button>
-          <button id="btnFeedback" class="btn btn--subtle">Feedback</button>
-          <button id="btnSettings" class="btn btn--icon" title="Settings" aria-label="Settings"></button>
+
+        <!-- MCP status pill -->
+        <button class="mcp-status-btn" id="mcpStatusBtn" aria-label="MCP Server status — click to configure">
+          <span class="mcp-dot" id="mcpDot"></span>
+          <span class="mcp-label">MCP</span>
+        </button>
+
+        <div class="action-divider" aria-hidden="true"></div>
+
+        <!-- Overflow ⋮ menu -->
+        <div class="dropdown-wrapper" id="overflowWrapper">
+          <button id="btnOverflow" class="btn btn--icon" title="More options" aria-label="More options" aria-haspopup="true" aria-expanded="false">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+          </button>
+          <div id="overflowMenu" class="dropdown-menu dropdown-menu--right hidden" role="menu">
+            <button id="btnGettingStarted" class="dropdown-item" role="menuitem">
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+              Getting Started
+            </button>
+            <button id="btnFeedback" class="dropdown-item" role="menuitem">
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              Feedback
+            </button>
+            <div class="dropdown-divider" role="separator"></div>
+            <button id="btnSettings" class="dropdown-item" role="menuitem">
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              Settings
+            </button>
+          </div>
         </div>
       </nav>
     </header>
@@ -54,14 +97,6 @@
       </section>
     </main>
 
-    <!-- MCP Status Footer -->
-    <footer class="app-footer" id="mcpFooter">
-      <button class="mcp-status-btn" id="mcpStatusBtn" title="MCP Server status — click to configure">
-        <span class="mcp-dot" id="mcpDot"></span>
-        <span class="mcp-label">MCP Server</span>
-        <span class="mcp-detail" id="mcpDetail">starting…</span>
-      </button>
-    </footer>
     <div id="loadingOverlay" class="overlay hidden" aria-hidden="true">
       <div class="overlay-content">
         <div class="spinner" aria-hidden="true"></div>
@@ -72,8 +107,13 @@
     <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
       <div class="modal-content">
         <div class="modal-header">
-          <h2 id="modalTitle">Create Project</h2>
-          <p class="modal-subtitle">Follow the steps to set up your project</p>
+          <div class="modal-header-text">
+            <h2 id="modalTitle">Create Project</h2>
+            <p class="modal-subtitle">Follow the steps to set up your project</p>
+          </div>
+          <button type="button" class="modal-close" data-dismiss="modal" aria-label="Close">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
         <form id="projectForm" autocomplete="off">
           <!-- Stage Navigation -->
@@ -255,6 +295,7 @@
 
           <div class="modal-footer">
             <div class="actions">
+              <span class="modal-kbd-hint"><kbd>Esc</kbd> to close</span>
               <button type="button" id="btnCancel">Cancel</button>
               <button type="button" id="btnPrevStage" class="btn-stage-nav" style="display: none;">Back</button>
               <button type="button" id="btnNextStage" class="btn-stage-nav">Next</button>
@@ -267,10 +308,15 @@
 
     <div id="gsModal" class="modal hidden" role="dialog" aria-modal="true">
       <div class="modal-content">
-        <div class="modal-header" style="position: relative;">
-          <h2>Getting Started with HostBuddy</h2>
-          <p class="modal-subtitle">Turn AI-generated code into real apps on your computer</p>
+        <div class="modal-header">
+          <div class="modal-header-text">
+            <h2>Getting Started with HostBuddy</h2>
+            <p class="modal-subtitle">Turn AI-generated code into real apps on your computer</p>
+          </div>
           <div id="versionBadge" class="version-badge">v0.0.0</div>
+          <button type="button" class="modal-close" data-dismiss="modal" aria-label="Close">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
         <div class="modal-body">
           <!-- Overview Section -->
@@ -624,6 +670,7 @@ Now, please help me create an app following these requirements.</textarea>
         </div>
         <div class="modal-footer">
           <div class="actions">
+            <span class="modal-kbd-hint"><kbd>Esc</kbd> to close</span>
             <button id="btnCloseGs" class="primary" type="button">Close</button>
           </div>
         </div>
@@ -631,10 +678,15 @@ Now, please help me create an app following these requirements.</textarea>
     </div>
 
     <div id="folderModal" class="modal hidden" role="dialog" aria-modal="true">
-      <div class="modal-content">
+      <div class="modal-content modal-content--compact">
         <div class="modal-header">
-          <h2>Create Folder</h2>
-          <p class="modal-subtitle">Add a folder to organize your projects</p>
+          <div class="modal-header-text">
+            <h2>Create Folder</h2>
+            <p class="modal-subtitle">Add a folder to organize your projects</p>
+          </div>
+          <button type="button" class="modal-close" data-dismiss="modal" aria-label="Close">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
         <form id="folderForm" autocomplete="off">
           <div class="modal-body">
@@ -644,6 +696,7 @@ Now, please help me create an app following these requirements.</textarea>
           </div>
           <div class="modal-footer">
             <div class="actions">
+              <span class="modal-kbd-hint"><kbd>Esc</kbd> to close</span>
               <button type="button" id="btnCancelFolder">Cancel</button>
               <button type="submit" id="btnSaveFolder" class="primary">Create</button>
             </div>
@@ -656,58 +709,52 @@ Now, please help me create an app following these requirements.</textarea>
     <div id="globalDropOverlay" class="global-drop-overlay hidden"><p>Drop .hbproject to import</p></div>
 
     <div id="settingsModal" class="modal hidden" role="dialog" aria-modal="true">
-      <div class="modal-content" style="max-width: 560px;">
+      <div class="modal-content modal-content--medium">
         <div class="modal-header">
-          <h2>Settings</h2>
-          <p class="modal-subtitle">Configure HostBuddy preferences</p>
+          <div class="modal-header-text">
+            <h2>Settings</h2>
+            <p class="modal-subtitle">Configure HostBuddy preferences</p>
+          </div>
+          <button type="button" class="modal-close" data-dismiss="modal" aria-label="Close">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
         <div class="modal-body">
-          <div class="form-steps">
-            <div class="step">
-              <div class="step-header">
-                <div class="step-num">1</div>
-                <div class="step-title">Projects Directory</div>
-              </div>
-              <div class="step-body">
-                <p style="margin:0 0 8px;">Where your .hbproject files are stored:</p>
-                <div style="display:flex; gap:8px; align-items:center;">
-                  <code id="settingsProjectsDir" style="flex:1; padding:8px 12px; background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:8px; font-size:12px; color:var(--text); word-break:break-all;">Loading...</code>
-                  <button type="button" id="btnChangeProjectsDir" class="btn">Change</button>
-                </div>
-                <div class="hint" style="margin-top:6px;">Changes take effect after restarting HostBuddy.</div>
-              </div>
+          <div class="settings-section">
+            <div class="settings-section-title">Projects Directory</div>
+            <p class="hint" style="margin:0 0 10px;">Where your .hbproject files are stored:</p>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <code id="settingsProjectsDir" class="settings-path">Loading...</code>
+              <button type="button" id="btnChangeProjectsDir" class="btn">Change</button>
             </div>
+            <div class="hint" style="margin-top:8px;">Changes take effect after restarting HostBuddy.</div>
+          </div>
 
-            <div class="step">
-              <div class="step-header">
-                <div class="step-num">2</div>
-                <div class="step-title">MCP Server</div>
+          <div class="settings-section">
+            <div class="settings-section-title">MCP Server</div>
+            <div class="settings-row" style="margin-bottom:14px;">
+              <div class="settings-row-info">
+                <div class="settings-row-label">Enable MCP Server</div>
+                <div class="settings-row-hint">Allows AI tools like Claude Code and Cursor to connect to HostBuddy.</div>
               </div>
-              <div class="step-body">
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
-                  <div>
-                    <div style="font-size:14px; font-weight:500; color:var(--text);">Enable MCP Server</div>
-                    <div class="hint" style="margin:2px 0 0;">Allows AI tools like Claude Code and Cursor to connect to HostBuddy.</div>
-                  </div>
-                  <label class="toggle-switch">
-                    <input type="checkbox" id="settingsMcpEnabled" />
-                    <span class="toggle-slider"></span>
-                  </label>
-                </div>
-                <label style="display:block; margin-bottom:8px;">
-                  <div style="font-size:13px; color:var(--muted); margin-bottom:4px;">Port (default: 6274)</div>
-                  <div style="display:flex; gap:8px; align-items:center;">
-                    <input type="number" id="settingsMcpPort" min="1024" max="65535" style="width:100px; padding:6px 10px; background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px;" />
-                    <button type="button" id="btnSaveMcpPort" class="btn">Save Port</button>
-                  </div>
-                </label>
-                <div class="hint">Port changes take effect after restarting HostBuddy. The server only listens on localhost for security.</div>
-              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="settingsMcpEnabled" />
+                <span class="toggle-slider"></span>
+              </label>
             </div>
+            <label style="display:block;">
+              <div class="hint" style="margin-bottom:6px;">Port (default: 6274)</div>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <input type="number" id="settingsMcpPort" min="1024" max="65535" class="settings-port-input" />
+                <button type="button" id="btnSaveMcpPort" class="btn">Save Port</button>
+              </div>
+            </label>
+            <div class="hint" style="margin-top:8px;">Port changes take effect after restarting HostBuddy. The server only listens on localhost for security.</div>
           </div>
         </div>
         <div class="modal-footer">
           <div class="actions">
+            <span class="modal-kbd-hint"><kbd>Esc</kbd> to close</span>
             <button type="button" id="btnCloseSettings" class="primary">Close</button>
           </div>
         </div>

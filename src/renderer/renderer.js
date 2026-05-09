@@ -3,6 +3,10 @@ const empty = document.getElementById('emptyState');
 const foldersList = document.getElementById('foldersList');
 const btnAddFolder = document.getElementById('btnAddFolder');
 const btnNew = document.getElementById('btnNew');
+const btnNewCaret = document.getElementById('btnNewCaret');
+const newProjectMenu = document.getElementById('newProjectMenu');
+const btnOverflow = document.getElementById('btnOverflow');
+const overflowMenu = document.getElementById('overflowMenu');
 const btnGettingStarted = document.getElementById('btnGettingStarted');
 const btnNew2 = document.getElementById('btnNew2');
 const btnFeedback = document.getElementById('btnFeedback');
@@ -368,15 +372,24 @@ async function fetchAndRender() {
   ]);
   renderFolders(folders, projects);
   const visibleProjects = selectedFolderId ? projects.filter(p => p.folderId === selectedFolderId) : projects;
+
+  // Animate existing cards out before replacing them
+  if (grid.children.length > 0) {
+    grid.classList.add('grid--exiting');
+    await new Promise(r => setTimeout(r, 150));
+    grid.classList.remove('grid--exiting');
+  }
+
   grid.innerHTML = '';
   if (!visibleProjects || visibleProjects.length === 0) {
     empty.classList.remove('hidden');
     return;
   }
   empty.classList.add('hidden');
-  for (const p of visibleProjects) {
+  for (const [cardIndex, p] of visibleProjects.entries()) {
     const card = document.createElement('div');
     card.className = 'card';
+    card.style.setProperty('--card-index', cardIndex);
     card.draggable = true;
     card.dataset.projectId = p.id;
     card.addEventListener('dragstart', (e) => {
@@ -496,7 +509,62 @@ function renderFolders(folders, projects) {
 }
 
 btnNew.addEventListener('click', () => openCreateModal());
-btnGettingStarted.addEventListener('click', () => openGettingStarted());
+
+// --- Dropdown helpers ---
+function openDropdown(menu, trigger) {
+  menu.classList.remove('hidden');
+  trigger.setAttribute('aria-expanded', 'true');
+}
+function closeDropdown(menu, trigger) {
+  menu.classList.add('hidden');
+  trigger.setAttribute('aria-expanded', 'false');
+}
+function toggleDropdown(menu, trigger, other, otherTrigger) {
+  if (menu.classList.contains('hidden')) {
+    if (other) closeDropdown(other, otherTrigger);
+    openDropdown(menu, trigger);
+  } else {
+    closeDropdown(menu, trigger);
+  }
+}
+
+// New Project caret dropdown
+btnNewCaret && btnNewCaret.addEventListener('click', (e) => {
+  e.stopPropagation();
+  toggleDropdown(newProjectMenu, btnNewCaret, overflowMenu, btnOverflow);
+});
+
+// Overflow ⋮ dropdown
+btnOverflow && btnOverflow.addEventListener('click', (e) => {
+  e.stopPropagation();
+  toggleDropdown(overflowMenu, btnOverflow, newProjectMenu, btnNewCaret);
+});
+
+// Close dropdowns on outside click or Escape
+document.addEventListener('click', () => {
+  if (newProjectMenu && !newProjectMenu.classList.contains('hidden')) closeDropdown(newProjectMenu, btnNewCaret);
+  if (overflowMenu && !overflowMenu.classList.contains('hidden')) closeDropdown(overflowMenu, btnOverflow);
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if (newProjectMenu && !newProjectMenu.classList.contains('hidden')) closeDropdown(newProjectMenu, btnNewCaret);
+    if (overflowMenu && !overflowMenu.classList.contains('hidden')) closeDropdown(overflowMenu, btnOverflow);
+  }
+});
+
+// Wire dropdown item actions (close menu after action)
+btnImport && btnImport.addEventListener('click', async () => {
+  closeDropdown(newProjectMenu, btnNewCaret);
+  try {
+    const res = await window.api.importProjects();
+    if (res && res.length) await fetchAndRender();
+  } catch (e) { alert('Import failed.'); }
+});
+
+btnGettingStarted.addEventListener('click', () => {
+  closeDropdown(overflowMenu, btnOverflow);
+  openGettingStarted();
+});
 btnNew2.addEventListener('click', () => openCreateModal());
 document.getElementById('btnImport2') && document.getElementById('btnImport2').addEventListener('click', async () => {
   try {
@@ -572,39 +640,17 @@ function addIconToButton(button, iconName) {
   button.prepend(icon);
 }
 
-// Apply icons to header buttons
-addIconToButton(btnFeedback, 'feedback');
-addIconToButton(btnGettingStarted, 'book-open');
-addIconToButton(btnImport, 'import');
-addIconToButton(btnToggleEdit, 'edit');
+// Apply icons to primary action buttons
 addIconToButton(btnNew, 'plus');
 addIconToButton(btnNew2, 'plus');
 addIconToButton(document.getElementById('btnImport2'), 'import');
 
-// Settings is icon-only — add icon without margin
-if (btnSettings) {
-  const icon = createLucideIcon('settings');
-  icon.setAttribute('width', '18');
-  icon.setAttribute('height', '18');
-  btnSettings.prepend(icon);
-}
-
 btnFeedback && btnFeedback.addEventListener('click', async () => {
+  closeDropdown(overflowMenu, btnOverflow);
   try {
     await window.api.openFeedback();
   } catch (e) {
     alert('Could not open feedback page.');
-  }
-});
-
-btnImport && btnImport.addEventListener('click', async () => {
-  try {
-    const res = await window.api.importProjects();
-    if (res && res.length) {
-      await fetchAndRender();
-    }
-  } catch (e) {
-    alert('Import failed.');
   }
 });
 
@@ -1028,14 +1074,11 @@ loadVersion();
 
 // Edit controls visibility toggle (default hidden)
 document.body.classList.add('edit-hidden');
-btnToggleEdit && btnToggleEdit.addEventListener('click', () => {
-  const textNode = Array.from(btnToggleEdit.childNodes).find(n => n.nodeType === Node.TEXT_NODE);
-  if (document.body.classList.contains('edit-hidden')) {
+btnToggleEdit && btnToggleEdit.addEventListener('change', () => {
+  if (btnToggleEdit.checked) {
     document.body.classList.remove('edit-hidden');
-    if (textNode) textNode.textContent = 'Done';
   } else {
     document.body.classList.add('edit-hidden');
-    if (textNode) textNode.textContent = 'Edit';
   }
 });
 
@@ -1055,7 +1098,10 @@ async function openSettingsModal() {
   _loadMcpSettings();
 }
 
-btnSettings && btnSettings.addEventListener('click', openSettingsModal);
+btnSettings && btnSettings.addEventListener('click', () => {
+  closeDropdown(overflowMenu, btnOverflow);
+  openSettingsModal();
+});
 btnCloseSettings && btnCloseSettings.addEventListener('click', () => settingsModal && settingsModal.classList.add('hidden'));
 
 btnChangeProjectsDir && btnChangeProjectsDir.addEventListener('click', async () => {
@@ -1114,7 +1160,7 @@ if (window.api.onImportFile) {
   });
 }
 
-// ---- MCP Footer Status ----
+// ---- MCP Header Status ----
 const mcpDot = document.getElementById('mcpDot');
 const mcpDetail = document.getElementById('mcpDetail');
 const mcpStatusBtn = document.getElementById('mcpStatusBtn');
@@ -1148,7 +1194,7 @@ function _applyMcpStatus(status) {
     mcpDot.className = 'mcp-dot';
     if (dotState !== 'disabled') mcpDot.classList.add(dotState);
   }
-  if (mcpDetail) mcpDetail.textContent = detailText;
+  if (mcpStatusBtn) mcpStatusBtn.title = `MCP Server — ${detailText}`;
 
   if (gsMcpDot) {
     gsMcpDot.className = 'mcp-dot';
@@ -1226,4 +1272,30 @@ document.addEventListener('drop', async (e) => {
   if (imported) await fetchAndRender();
 });
 
+// ---- Global modal close handlers (X buttons, backdrop click, Escape key) ----
+function dismissModal(modalEl) {
+  if (!modalEl || modalEl.classList.contains('hidden')) return;
+  if (modalEl === modal) { hideModal(); return; }
+  if (modalEl === gsModal) { closeGettingStarted(); return; }
+  if (modalEl === folderModal) { closeFolderModal(); return; }
+  if (modalEl === settingsModal) { settingsModal.classList.add('hidden'); return; }
+  modalEl.classList.add('hidden');
+}
 
+document.addEventListener('click', (e) => {
+  const closeBtn = e.target.closest('[data-dismiss="modal"]');
+  if (closeBtn) {
+    const modalEl = closeBtn.closest('.modal');
+    dismissModal(modalEl);
+    return;
+  }
+  if (e.target.classList.contains('modal') && !e.target.classList.contains('hidden')) {
+    dismissModal(e.target);
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const openModal = document.querySelector('.modal:not(.hidden)');
+  if (openModal) dismissModal(openModal);
+});
