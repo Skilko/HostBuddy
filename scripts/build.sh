@@ -52,7 +52,9 @@ if $has_mac; then
   if [[ "$sign_choice" == "y" ]]; then
     if [[ -f ".env.signing" ]]; then
       # shellcheck source=/dev/null
+      set -a
       source .env.signing
+      set +a
       echo "  Loaded signing credentials from .env.signing"
     else
       echo "  ERROR: .env.signing not found in project root."
