@@ -4,6 +4,7 @@ const fs = require('fs');
 const SettingsStore = require('./settingsStore');
 const ProjectsStore = require('./projectsStore');
 const { initIpc } = require('./ipc');
+const mcpServer = require('./mcpServer');
 
 /** @type {BrowserWindow | null} */
 let mainWindow = null;
@@ -81,6 +82,13 @@ app.whenReady().then(async () => {
 
   createMainWindow();
   initIpc(ipcMain, projectsStore, settingsStore, app, BrowserWindow);
+
+  mcpServer.onStatusChange((status) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('mcp:status-changed', status);
+    }
+  });
+  mcpServer.start(projectsStore, settingsStore);
 
   // Run migration after the window is visible so the app doesn't appear frozen
   try {

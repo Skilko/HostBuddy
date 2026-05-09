@@ -54,6 +54,25 @@ class SettingsStore {
     this.set('projectsDir', newPath);
     return old;
   }
+
+  getMcpEnabled() {
+    const val = this.get('mcpEnabled');
+    return val === undefined ? true : !!val;
+  }
+
+  setMcpEnabled(enabled) {
+    this.set('mcpEnabled', !!enabled);
+  }
+
+  getMcpPort() {
+    const val = this.get('mcpPort');
+    const port = parseInt(val, 10);
+    return port && port >= 1024 && port <= 65535 ? port : 6274;
+  }
+
+  setMcpPort(port) {
+    this.set('mcpPort', port);
+  }
 }
 
 module.exports = SettingsStore;

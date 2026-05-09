@@ -24,4 +24,9 @@ contextBridge.exposeInMainWorld('api', {
   getVersion: () => ipcRenderer.invoke('app:getVersion'),
   getProjectsDir: () => ipcRenderer.invoke('settings:getProjectsDir'),
   setProjectsDir: () => ipcRenderer.invoke('settings:setProjectsDir'),
+  getMcpStatus: () => ipcRenderer.invoke('mcp:getStatus'),
+  getMcpSettings: () => ipcRenderer.invoke('settings:getMcpSettings'),
+  setMcpEnabled: (enabled) => ipcRenderer.invoke('mcp:setEnabled', enabled),
+  setMcpPort: (port) => ipcRenderer.invoke('mcp:setPort', port),
+  onMcpStatusChanged: (callback) => ipcRenderer.on('mcp:status-changed', (_event, status) => callback(status)),
 });

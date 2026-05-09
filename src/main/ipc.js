@@ -7,6 +7,7 @@ const {
   writeDetectionDebugLog, makeRunDir, prepareReactProject,
   prepareReactProjectPersistent, installDependenciesWithPnpm, bundleWithEsbuild,
 } = require('./buildHelpers');
+const { buildAiContextMarkdown } = require('./aiContext');
 
 function slugifyBase(name) {
   return String(name || 'hostbuddy-project').toLowerCase()
@@ -26,96 +27,6 @@ function coerceImportedProject(raw) {
       .map(a => ({ filename: String(a.filename), mimeType: typeof a.mimeType === 'string' ? String(a.mimeType) : 'application/octet-stream', data: String(a.data) }));
   }
   return { title, description, iconBase64, code, offline: false, attachments };
-}
-
-const HOSTBUDDY_AI_CONTEXT = `You are helping update an existing HostBuddy project. HostBuddy is a desktop app that runs AI-generated HTML and React applications locally.
-
-## OUTPUT FORMAT REQUIREMENTS
-Provide code in ONE of these formats:
-
-**Option 1: HTML (for simple apps)**
-- A complete, self-contained HTML document
-- Include all CSS in <style> tags and JavaScript in <script> tags
-
-**Option 2: React (for interactive apps)**
-- A single .tsx or .jsx file with a default export
-- Format: \`export default function App() { return (...) }\`
-- You can import from npm packages (react, react-dom, lucide-react, recharts)
-
-## ARCHITECTURE CONSTRAINTS
-- Must be CLIENT-SIDE ONLY - no backend servers or API endpoints
-- Use localStorage or IndexedDB for data persistence
-- All functionality must work offline after initial load
-- No external URLs or CDN links - all assets must be inline
-
-## STYLING
-- For HTML: Use inline styles or <style> tags
-- For React: Tailwind classes work via Twind runtime
-
-## IMPORTANT
-- Preserve any existing functionality unless explicitly asked to remove it
-- Maintain the same code format (HTML or React) as the original
-- Output the COMPLETE updated code, not just the changes`;
-
-const TEXT_ATTACHMENT_EXTS = /\.(css|js|jsx|tsx|json|svg)$/i;
-
-function _extLang(filename) {
-  const ext = (filename.match(/\.(\w+)$/) || [])[1] || '';
-  const map = { css: 'css', js: 'javascript', jsx: 'jsx', tsx: 'tsx', json: 'json', svg: 'xml' };
-  return map[ext.toLowerCase()] || ext.toLowerCase();
-}
-
-function buildAiContextMarkdown(project) {
-  const lines = [];
-  lines.push(`# HostBuddy Project: ${project.title || 'Untitled'}\n`);
-
-  if (project.description) {
-    lines.push(`## Project Description\n\n${project.description}\n`);
-  }
-
-  lines.push(`## HostBuddy Context\n\n${HOSTBUDDY_AI_CONTEXT}\n`);
-
-  lines.push(`## Project Files\n`);
-  const mainFile = project.mainFile || 'index.html';
-  lines.push(`### ${mainFile} (main entry)\n\n\`\`\`html\n${project.code || ''}\n\`\`\`\n`);
-
-  const textAtts = [];
-  const binaryAtts = [];
-
-  for (const att of (project.attachments || [])) {
-    if (TEXT_ATTACHMENT_EXTS.test(att.filename)) {
-      const match = att.data && att.data.match(/^data:[^;]*;base64,(.*)$/);
-      if (match) {
-        try {
-          const content = Buffer.from(match[1], 'base64').toString('utf8');
-          textAtts.push({ filename: att.filename, content });
-        } catch (_) { binaryAtts.push(att); }
-      } else {
-        binaryAtts.push(att);
-      }
-    } else {
-      binaryAtts.push(att);
-    }
-  }
-
-  for (const f of textAtts) {
-    lines.push(`### ${f.filename}\n\n\`\`\`${_extLang(f.filename)}\n${f.content}\n\`\`\`\n`);
-  }
-
-  if (binaryAtts.length > 0) {
-    lines.push(`## Binary Assets (reference by filename, do not modify)\n`);
-    for (const att of binaryAtts) {
-      lines.push(`- ${att.filename} (${att.mimeType || 'application/octet-stream'})`);
-    }
-    lines.push('');
-  }
-
-  lines.push(`## Response Format\n`);
-  lines.push(`Provide the complete updated code for each file, clearly labeled with the filename.`);
-  lines.push(`If adding new files, indicate they are new.`);
-  lines.push(`Maintain the same code format (HTML or React) as the original.\n`);
-
-  return lines.join('\n');
 }
 
 function initIpc(ipcMain, initialStore, settingsStore, app, BrowserWindow) {
@@ -391,6 +302,41 @@ function initIpc(ipcMain, initialStore, settingsStore, app, BrowserWindow) {
     try { return JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'package.json'), 'utf8')).version || '0.0.0'; }
     catch (_) { return '0.0.0'; }
   });
+
+  // ---- MCP Server status / control ----
+  ipcMain.handle('mcp:getStatus', () => {
+    try {
+      const { getStatus } = require('./mcpServer');
+      return getStatus();
+    } catch (_) {
+      return { enabled: false, port: 6274, connectedClients: 0, error: null };
+    }
+  });
+
+  ipcMain.handle('mcp:setEnabled', (_event, enabled) => {
+    settingsStore.setMcpEnabled(!!enabled);
+    try {
+      const mcpServer = require('./mcpServer');
+      if (enabled) {
+        mcpServer.start(ctx.store, settingsStore);
+      } else {
+        mcpServer.stop();
+      }
+    } catch (_) {}
+    return settingsStore.getMcpEnabled();
+  });
+
+  ipcMain.handle('mcp:setPort', (_event, port) => {
+    const p = parseInt(port, 10);
+    if (!p || p < 1024 || p > 65535) throw new Error('Invalid port number (must be 1024-65535)');
+    settingsStore.setMcpPort(p);
+    return p;
+  });
+
+  ipcMain.handle('settings:getMcpSettings', () => ({
+    enabled: settingsStore.getMcpEnabled(),
+    port: settingsStore.getMcpPort(),
+  }));
 }
 
 function _importZipProject(fp, store) {

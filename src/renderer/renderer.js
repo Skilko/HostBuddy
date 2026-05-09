@@ -56,6 +56,22 @@ const DEFAULT_APP_ICON = '../../assets/default-app.png';
 
 let iconBase64 = null;
 let pictureMode = 'default'; // 'default' | 'screenshot' | 'custom'
+
+// ---- Copy snippet helper (called via inline onclick in Getting Started modal) ----
+async function copySnippet(btn) {
+  const prev = btn.previousElementSibling;
+  const text = prev ? (prev.value !== undefined ? prev.value : prev.textContent) : '';
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text.trim());
+    const span = btn.querySelector('span') || btn;
+    const original = span.textContent;
+    span.textContent = 'Copied!';
+    setTimeout(() => { span.textContent = original; }, 2000);
+  } catch {
+    alert('Failed to copy. Please try again.');
+  }
+}
 let editProjectId = null;
 let selectedFolderId = null;
 let projectAttachments = [];
@@ -315,6 +331,7 @@ function openCreateModal() {
 
 function openGettingStarted() {
   if (gsModal) gsModal.classList.remove('hidden');
+  _refreshMcpStatus();
 }
 function closeGettingStarted() {
   if (gsModal) gsModal.classList.add('hidden');
@@ -1035,6 +1052,7 @@ async function openSettingsModal() {
     const dir = await window.api.getProjectsDir();
     if (settingsProjectsDir) settingsProjectsDir.textContent = dir || 'Default';
   } catch (_) {}
+  _loadMcpSettings();
 }
 
 btnSettings && btnSettings.addEventListener('click', openSettingsModal);
@@ -1051,6 +1069,41 @@ btnChangeProjectsDir && btnChangeProjectsDir.addEventListener('click', async () 
   }
 });
 
+// ---- MCP Settings ----
+const settingsMcpEnabled = document.getElementById('settingsMcpEnabled');
+const settingsMcpPort = document.getElementById('settingsMcpPort');
+const btnSaveMcpPort = document.getElementById('btnSaveMcpPort');
+
+async function _loadMcpSettings() {
+  try {
+    const s = await window.api.getMcpSettings();
+    if (settingsMcpEnabled) settingsMcpEnabled.checked = !!s.enabled;
+    if (settingsMcpPort) settingsMcpPort.value = s.port || 6274;
+  } catch (_) {}
+}
+
+settingsMcpEnabled && settingsMcpEnabled.addEventListener('change', async () => {
+  try {
+    await window.api.setMcpEnabled(settingsMcpEnabled.checked);
+  } catch (_) {
+    alert('Failed to update MCP server setting.');
+  }
+});
+
+btnSaveMcpPort && btnSaveMcpPort.addEventListener('click', async () => {
+  const port = parseInt(settingsMcpPort.value, 10);
+  if (!port || port < 1024 || port > 65535) {
+    alert('Please enter a valid port number between 1024 and 65535.');
+    return;
+  }
+  try {
+    await window.api.setMcpPort(port);
+    alert(`Port saved. Restart HostBuddy to apply the change.`);
+  } catch (e) {
+    alert(e.message || 'Failed to save port.');
+  }
+});
+
 // ---- File association: import on open ----
 if (window.api.onImportFile) {
   window.api.onImportFile(async (filePath) => {
@@ -1060,6 +1113,68 @@ if (window.api.onImportFile) {
     } catch (_) {}
   });
 }
+
+// ---- MCP Footer Status ----
+const mcpDot = document.getElementById('mcpDot');
+const mcpDetail = document.getElementById('mcpDetail');
+const mcpStatusBtn = document.getElementById('mcpStatusBtn');
+const gsMcpDot = document.getElementById('gsMcpDot');
+const gsMcpStatusText = document.getElementById('gsMcpStatusText');
+const mcpUrlEl = document.getElementById('mcpUrl');
+
+function _applyMcpStatus(status) {
+  if (!status) return;
+  const { enabled, port, connectedClients, error } = status;
+
+  let dotState = 'disabled';
+  let detailText = 'disabled';
+  let bannerText = 'MCP server is disabled.';
+
+  if (enabled && error) {
+    dotState = 'error';
+    detailText = `error: ${error}`;
+    bannerText = `Error: ${error}`;
+  } else if (enabled && connectedClients > 0) {
+    dotState = 'connected';
+    detailText = `port ${port} · ${connectedClients} client${connectedClients !== 1 ? 's' : ''} connected`;
+    bannerText = `Connected — ${connectedClients} client${connectedClients !== 1 ? 's' : ''} on port ${port}.`;
+  } else if (enabled) {
+    dotState = 'listening';
+    detailText = `listening on port ${port}`;
+    bannerText = `Listening on port ${port} — no clients connected yet.`;
+  }
+
+  if (mcpDot) {
+    mcpDot.className = 'mcp-dot';
+    if (dotState !== 'disabled') mcpDot.classList.add(dotState);
+  }
+  if (mcpDetail) mcpDetail.textContent = detailText;
+
+  if (gsMcpDot) {
+    gsMcpDot.className = 'mcp-dot';
+    if (dotState !== 'disabled') gsMcpDot.classList.add(dotState);
+  }
+  if (gsMcpStatusText) gsMcpStatusText.textContent = bannerText;
+  if (mcpUrlEl && port) mcpUrlEl.textContent = `http://localhost:${port}/mcp`;
+}
+
+async function _refreshMcpStatus() {
+  try {
+    const status = await window.api.getMcpStatus();
+    _applyMcpStatus(status);
+  } catch (_) {}
+}
+
+mcpStatusBtn && mcpStatusBtn.addEventListener('click', () => openSettingsModal());
+
+const btnCopyMcpUrl = document.getElementById('btnCopyMcpUrl');
+btnCopyMcpUrl && btnCopyMcpUrl.addEventListener('click', () => copySnippet(btnCopyMcpUrl));
+
+if (window.api.onMcpStatusChanged) {
+  window.api.onMcpStatusChanged((status) => _applyMcpStatus(status));
+}
+
+_refreshMcpStatus();
 
 // ---- Global drag-to-import for .hbproject files ----
 const globalDropOverlay = document.getElementById('globalDropOverlay');
