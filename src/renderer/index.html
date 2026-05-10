@@ -78,7 +78,9 @@
     <main class="content">
       <aside id="foldersSidebar" class="sidebar" aria-label="Folders">
         <div class="sidebar-header">
-          <h3>Folders</h3>
+          <h3 title="Folders" aria-label="Folders">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          </h3>
           <button id="btnAddFolder" class="btn" title="Add Folder" aria-label="Add Folder"></button>
         </div>
         <nav id="foldersList" class="folders"></nav>
@@ -588,16 +590,16 @@ Now, please help me create an app following these requirements.</textarea>
               <div class="gs-tool-config">
                 <div class="gs-tool-config-header">
                   <span class="gs-tool-icon">⌨️</span>
-                  <strong>Claude Code / Claude Desktop</strong>
+                  <strong>Claude Desktop</strong>
                 </div>
-                <p class="gs-tool-desc">Add to your <code>claude_desktop_config.json</code> (Claude Desktop) or run the CLI command below (Claude Code):</p>
+                <p class="gs-tool-desc">Claude Desktop only supports stdio-based MCP servers. Use <code>mcp-remote</code> as a bridge — no installation needed, <code>npx</code> fetches it automatically:</p>
                 <div class="gs-code-container">
                   <div class="gs-code-label">claude_desktop_config.json</div>
                   <textarea class="code gs-config-snippet" readonly>{
   "mcpServers": {
     "hostbuddy": {
-      "type": "sse",
-      "url": "http://localhost:6274/mcp"
+      "command": "npx",
+      "args": ["mcp-remote", "http://localhost:6274/mcp"]
     }
   }
 }</textarea>
@@ -605,9 +607,17 @@ Now, please help me create an app following these requirements.</textarea>
                     <span>Copy</span>
                   </button>
                 </div>
-                <div class="gs-code-container" style="margin-top:8px;">
+              </div>
+
+              <div class="gs-tool-config">
+                <div class="gs-tool-config-header">
+                  <span class="gs-tool-icon">⌨️</span>
+                  <strong>Claude Code</strong>
+                </div>
+                <p class="gs-tool-desc">Run this command in your terminal to register the server:</p>
+                <div class="gs-code-container">
                   <div class="gs-code-label">Claude Code CLI</div>
-                  <textarea class="code gs-config-snippet" readonly style="min-height:36px; height:36px;">claude mcp add --transport sse hostbuddy http://localhost:6274/mcp</textarea>
+                  <textarea class="code gs-config-snippet" readonly style="min-height:36px; height:36px;">claude mcp add --transport http hostbuddy http://localhost:6274/mcp</textarea>
                   <button class="gs-copy-btn" type="button" onclick="copySnippet(this)">
                     <span>Copy</span>
                   </button>

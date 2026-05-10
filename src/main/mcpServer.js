@@ -14,6 +14,7 @@ let _port = DEFAULT_PORT;
 let _enabled = false;
 let _error = null;
 let _statusCallback = null;
+let _projectChangedCallback = null;
 let _projectsStore = null;
 let _sessions = {};
 
@@ -32,6 +33,14 @@ function _notifyStatus() {
 
 function onStatusChange(cb) {
   _statusCallback = cb;
+}
+
+function onProjectChanged(cb) {
+  _projectChangedCallback = cb;
+}
+
+function _notifyProjectChanged() {
+  if (_projectChangedCallback) _projectChangedCallback();
 }
 
 function _createMcpServer() {
@@ -118,6 +127,7 @@ function _createMcpServer() {
       offline: !!offline,
       attachments: [],
     });
+    _notifyProjectChanged();
     return {
       content: [{ type: 'text', text: JSON.stringify({ id: project.id, title: project.title, createdAt: project.createdAt }, null, 2) }],
     };
@@ -142,6 +152,7 @@ function _createMcpServer() {
     if (Object.keys(updates).length === 0) throw new Error('No fields provided to update');
     const updated = _projectsStore.update(id, updates);
     if (!updated) throw new Error(`Project not found: ${id}`);
+    _notifyProjectChanged();
     return {
       content: [{ type: 'text', text: JSON.stringify({ id: updated.id, title: updated.title, updatedAt: updated.updatedAt }, null, 2) }],
     };
@@ -156,6 +167,7 @@ function _createMcpServer() {
     if (!_projectsStore) throw new Error('ProjectsStore not available');
     const deleted = _projectsStore.delete(id);
     if (!deleted) throw new Error(`Project not found: ${id}`);
+    _notifyProjectChanged();
     return {
       content: [{ type: 'text', text: `Project ${id} deleted successfully.` }],
     };
@@ -282,4 +294,4 @@ function stop() {
   _notifyStatus();
 }
 
-module.exports = { start, stop, getStatus, onStatusChange };
+module.exports = { start, stop, getStatus, onStatusChange, onProjectChanged };

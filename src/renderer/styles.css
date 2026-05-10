@@ -248,7 +248,7 @@ h1 { font-size: 18px; margin: 0; }
   color: white;
   border-color: rgba(255, 255, 255, 0.2);
 }
-.sidebar h3 { margin: 0; font-size: 14px; color: var(--muted); }
+.sidebar h3 { margin: 0; font-size: 14px; color: var(--muted); display: flex; align-items: center; }
 .folders { display: grid; gap: 6px; }
 .folder { 
   display:flex; 

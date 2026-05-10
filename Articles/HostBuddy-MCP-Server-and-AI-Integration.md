@@ -382,7 +382,8 @@ The Getting Started modal already existed as an onboarding guide covering projec
 - The live server status banner (same dot + descriptive text shown in the header)
 - The server URL (`http://localhost:6274/mcp`) with a copy button
 - Step-by-step configuration instructions for:
-  - **Claude Code** — `claude mcp add --transport sse hostbuddy http://localhost:6274/mcp`
+  - **Claude Desktop** — `claude_desktop_config.json` using `npx mcp-remote` as a stdio-to-HTTP bridge (Claude Desktop does not support URL-based MCP servers natively)
+  - **Claude Code** — `claude mcp add --transport http hostbuddy http://localhost:6274/mcp`
   - **Cursor** — adding an entry to `.cursor/mcp.json`
   - **Any MCP-compatible tool** — generic URL for tools supporting Streamable HTTP
 - A table of available MCP tools with their descriptions

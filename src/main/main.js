@@ -99,6 +99,11 @@ app.whenReady().then(async () => {
       mainWindow.webContents.send('mcp:status-changed', status);
     }
   });
+  mcpServer.onProjectChanged(() => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('projects:changed');
+    }
+  });
   mcpServer.start(projectsStore, settingsStore);
 
   // Run migration after the window is visible so the app doesn't appear frozen

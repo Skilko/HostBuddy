@@ -1290,6 +1290,10 @@ if (window.api.onMcpStatusChanged) {
   window.api.onMcpStatusChanged((status) => _applyMcpStatus(status));
 }
 
+if (window.api.onProjectsChanged) {
+  window.api.onProjectsChanged(() => fetchAndRender());
+}
+
 _refreshMcpStatus();
 
 // ---- Global drag-to-import for .hbproject files ----
