@@ -14,9 +14,9 @@
   --surface-body-1: #0b1022;
   --surface-body-2: #0e1228;
   --surface-header: rgba(22, 32, 56, 0.75);
-  --surface-sidebar: rgba(26, 35, 54, 0.92);
-  --surface-card: rgba(22, 30, 50, 0.8);
-  --surface-card-hover: rgba(22, 30, 50, 0.9);
+  --surface-sidebar: #1a2336;
+  --surface-card: #161e32;
+  --surface-card-hover: #1c2540;
   --surface-dropdown: rgba(18, 26, 46, 0.97);
   --surface-modal: #0d1525;
   --surface-modal-chrome: #101b2e;
@@ -41,7 +41,7 @@
   --text-hint: #a0aab8;
   --text-accent-tint: #c7d2fe;
   --text-url-code: #a5b4fc;
-  --grid-line: rgba(255, 255, 255, 0.18);
+  --grid-line: rgba(255, 255, 255, 0.05);
 }
 
 * { box-sizing: border-box; }
@@ -241,7 +241,7 @@ h1 { font-size: 18px; margin: 0; }
 }
 
 .content { padding: 24px; display:flex; gap:16px; align-items:flex-start; }
-.sidebar { width: 220px; flex-shrink: 0; background: var(--surface-sidebar); border: 1px solid var(--border); border-radius: 12px; padding: 12px; position: sticky; top: 80px; max-height: calc(100vh - 120px); overflow: auto; }
+.sidebar { width: 220px; flex-shrink: 0; background: var(--surface-sidebar); border: 1px solid var(--border); border-radius: 12px; padding: 12px; position: sticky; top: 80px; max-height: calc(100vh - 120px); overflow: auto; z-index: 2; }
 .sidebar-header { display:flex; align-items:center; justify-content: space-between; margin-bottom: 8px; }
 .sidebar-header .btn:hover {
   background: rgba(255, 255, 255, 0.1);
@@ -350,8 +350,6 @@ body:not(.edit-hidden) .edit-controls .btn.delete {
     linear-gradient(var(--grid-line) 1px, transparent 1px),
     linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
   background-size: 40px 40px;
-  -webkit-mask-image: radial-gradient(ellipse 65% 65% at 50% 50%, black 20%, transparent 100%);
-  mask-image: radial-gradient(ellipse 65% 65% at 50% 50%, black 20%, transparent 100%);
   pointer-events: none;
   z-index: 0;
 }
@@ -565,8 +563,6 @@ body:not(.edit-hidden) .edit-controls .btn.delete {
     linear-gradient(var(--grid-line) 1px, transparent 1px),
     linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
   background-size: 40px 40px;
-  -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 40%, black 20%, transparent 100%);
-  mask-image: radial-gradient(ellipse 70% 70% at 50% 40%, black 20%, transparent 100%);
   pointer-events: none;
   z-index: 0;
 }
@@ -1750,24 +1746,6 @@ textarea.code:focus {
 .toggle-switch input:checked + .toggle-slider { background: var(--accent); }
 .toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
 
-/* BBAI watermark in bottom-right corner of the app background */
-body::after {
-  content: '';
-  position: fixed;
-  bottom: 0px;
-  right: 0px;
-  width: 150px;
-  height: 150px;
-  background-image: url('../../assets/bbai_logo_nobackground.png');
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: bottom right;
-  opacity: 0.22;
-  filter: grayscale(20%);
-  pointer-events: none;
-  z-index: 0;
-}
-
 /* ============================================================
    STARTUP SKELETON LOADER
    ============================================================ */
@@ -1896,9 +1874,9 @@ html.light-mode {
   --surface-body-1: #f0f4fa;
   --surface-body-2: #e8eef8;
   --surface-header: rgba(255, 255, 255, 0.92);
-  --surface-sidebar: rgba(255, 255, 255, 0.95);
-  --surface-card: rgba(255, 255, 255, 0.85);
-  --surface-card-hover: rgba(255, 255, 255, 0.98);
+  --surface-sidebar: #ffffff;
+  --surface-card: #fdfdff;
+  --surface-card-hover: #ffffff;
   --surface-dropdown: rgba(255, 255, 255, 0.98);
   --surface-modal: #ffffff;
   --surface-modal-chrome: #f8fafc;
@@ -1922,7 +1900,7 @@ html.light-mode {
   --text-hint: #64748b;
   --text-accent-tint: #991b1b;
   --text-url-code: #dc2626;
-  --grid-line: rgba(180, 30, 30, 0.14);
+  --grid-line: rgba(180, 30, 30, 0.05);
 }
 
 /* Header — add a subtle shadow in light mode since the glass effect is less visible */
@@ -2163,10 +2141,4 @@ html.light-mode .project-file-item {
 /* Attachment items */
 html.light-mode .attachment-item {
   background: rgba(0, 0, 0, 0.03);
-}
-
-/* Watermark — slightly reduced opacity on light background */
-html.light-mode body::after {
-  opacity: 0.12;
-  filter: grayscale(40%);
 }

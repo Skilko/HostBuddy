@@ -28,6 +28,7 @@ contextBridge.exposeInMainWorld('api', {
   getMcpSettings: () => ipcRenderer.invoke('settings:getMcpSettings'),
   setMcpEnabled: (enabled) => ipcRenderer.invoke('mcp:setEnabled', enabled),
   setMcpPort: (port) => ipcRenderer.invoke('mcp:setPort', port),
+  getMcpBridgeConfig: () => ipcRenderer.invoke('mcp:getBridgeConfig'),
   onMcpStatusChanged: (callback) => ipcRenderer.on('mcp:status-changed', (_event, status) => callback(status)),
   onProjectsChanged: (callback) => ipcRenderer.on('projects:changed', () => callback()),
   getTheme: () => ipcRenderer.invoke('settings:getTheme'),

@@ -326,11 +326,27 @@ function initIpc(ipcMain, initialStore, settingsStore, app, BrowserWindow) {
     return settingsStore.getMcpEnabled();
   });
 
-  ipcMain.handle('mcp:setPort', (_event, port) => {
+  ipcMain.handle('mcp:setPort', async (_event, port) => {
     const p = parseInt(port, 10);
     if (!p || p < 1024 || p > 65535) throw new Error('Invalid port number (must be 1024-65535)');
     settingsStore.setMcpPort(p);
+    // Rebind straight away — otherwise the new port only takes effect on next launch.
+    if (settingsStore.getMcpEnabled()) {
+      try { await require('./mcpServer').restart(); } catch (_) {}
+    }
     return p;
+  });
+
+  // Path + ready-made Claude Desktop config for the bundled stdio bridge.
+  ipcMain.handle('mcp:getBridgeConfig', () => {
+    const { installBridge, buildClaudeDesktopConfig } = require('./mcpBridgeInstall');
+    const bridgePath = installBridge(app.getPath('userData'));
+    const port = settingsStore.getMcpPort();
+    return {
+      bridgePath,
+      command: process.execPath,
+      snippet: bridgePath ? buildClaudeDesktopConfig(bridgePath, process.execPath, port) : null,
+    };
   });
 
   ipcMain.handle('settings:getMcpSettings', () => ({

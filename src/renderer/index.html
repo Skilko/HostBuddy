@@ -592,21 +592,15 @@ Now, please help me create an app following these requirements.</textarea>
                   <span class="gs-tool-icon">⌨️</span>
                   <strong>Claude Desktop</strong>
                 </div>
-                <p class="gs-tool-desc">Claude Desktop only supports stdio-based MCP servers. Use <code>mcp-remote</code> as a bridge — no installation needed, <code>npx</code> fetches it automatically:</p>
+                <p class="gs-tool-desc">Claude Desktop only supports stdio-based MCP servers, so HostBuddy ships a small bridge. Paste this into <code>claude_desktop_config.json</code> and restart Claude Desktop — it keeps working when HostBuddy is closed, and reconnects on its own once you reopen it.</p>
                 <div class="gs-code-container">
                   <div class="gs-code-label">claude_desktop_config.json</div>
-                  <textarea class="code gs-config-snippet" readonly>{
-  "mcpServers": {
-    "hostbuddy": {
-      "command": "npx",
-      "args": ["mcp-remote", "http://localhost:6274/mcp"]
-    }
-  }
-}</textarea>
+                  <textarea class="code gs-config-snippet" id="mcpBridgeSnippet" readonly>Loading…</textarea>
                   <button class="gs-copy-btn" type="button" onclick="copySnippet(this)">
                     <span>Copy</span>
                   </button>
                 </div>
+                <p class="gs-tool-desc" style="margin-top:10px;">Prefer <code>npx</code>? <code>{"command": "npx", "args": ["mcp-remote", "http://localhost:6274/mcp"]}</code> also works, but Claude Desktop must be started <em>after</em> HostBuddy or it will report the server as disconnected.</p>
               </div>
 
               <div class="gs-tool-config">
@@ -678,8 +672,8 @@ Now, please help me create an app following these requirements.</textarea>
               <ul style="margin: 8px 0 0 20px; padding: 0;">
                 <li>If the server shows an error, port <strong>6274</strong> may be in use — change it in Settings</li>
                 <li>The server only accepts connections from <strong>localhost</strong> for security</li>
-                <li>HostBuddy must be open and running for the MCP server to be available</li>
-                <li>After changing the port in Settings, restart HostBuddy for changes to take effect</li>
+                <li>HostBuddy must be open for tools to work; with the bundled bridge, Claude Desktop reconnects by itself once you reopen HostBuddy</li>
+                <li>Changing the port in Settings rebinds the server immediately — re-copy the config for your AI tool</li>
               </ul>
             </div>
           </div>

@@ -1214,7 +1214,9 @@ btnSaveMcpPort && btnSaveMcpPort.addEventListener('click', async () => {
   }
   try {
     await window.api.setMcpPort(port);
-    alert(`Port saved. Restart HostBuddy to apply the change.`);
+    await _refreshMcpStatus();
+    await _refreshMcpBridgeSnippet();
+    alert(`MCP server is now on port ${port}. Update your AI tool's configuration to match.`);
   } catch (e) {
     alert(e.message || 'Failed to save port.');
   }
@@ -1274,6 +1276,20 @@ function _applyMcpStatus(status) {
   if (mcpUrlEl && port) mcpUrlEl.textContent = `http://localhost:${port}/mcp`;
 }
 
+const mcpBridgeSnippetEl = document.getElementById('mcpBridgeSnippet');
+
+async function _refreshMcpBridgeSnippet() {
+  if (!mcpBridgeSnippetEl || !window.api.getMcpBridgeConfig) return;
+  try {
+    const cfg = await window.api.getMcpBridgeConfig();
+    mcpBridgeSnippetEl.value = cfg && cfg.snippet
+      ? cfg.snippet
+      : 'Could not install the MCP bridge — check HostBuddy has write access to its application data folder.';
+  } catch (_) {
+    mcpBridgeSnippetEl.value = 'Could not load the bridge configuration.';
+  }
+}
+
 async function _refreshMcpStatus() {
   try {
     const status = await window.api.getMcpStatus();
@@ -1295,6 +1311,7 @@ if (window.api.onProjectsChanged) {
 }
 
 _refreshMcpStatus();
+_refreshMcpBridgeSnippet();
 
 // ---- Global drag-to-import for .hbproject files ----
 const globalDropOverlay = document.getElementById('globalDropOverlay');

@@ -5,6 +5,7 @@ const SettingsStore = require('./settingsStore');
 const ProjectsStore = require('./projectsStore');
 const { initIpc } = require('./ipc');
 const mcpServer = require('./mcpServer');
+const { installBridge } = require('./mcpBridgeInstall');
 
 /** @type {BrowserWindow | null} */
 let mainWindow = null;
@@ -104,6 +105,9 @@ app.whenReady().then(async () => {
       mainWindow.webContents.send('projects:changed');
     }
   });
+  // Keep the stdio bridge on disk at a stable, non-asar path for Claude Desktop.
+  installBridge(app.getPath('userData'));
+
   mcpServer.start(projectsStore, settingsStore);
 
   // Run migration after the window is visible so the app doesn't appear frozen

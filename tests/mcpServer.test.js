@@ -242,12 +242,35 @@ describe('MCP Server', () => {
     expect(projects.some(p => p.id === id)).toBe(false);
   });
 
-  test('POST without session on non-initialize returns 400', async () => {
+  test('POST without a session is served statelessly instead of failing', async () => {
     const resp = await mcpPost(TEST_PORT, {
       jsonrpc: '2.0',
       id: 99,
       method: 'tools/list',
     });
-    expect(resp.status).toBe(400);
+    expect(resp.status).toBe(200);
+    const messages = parseJsonRpcFromResponse(resp.body);
+    const toolsResult = messages.find(m => m.result && m.result.tools);
+    expect(toolsResult).toBeTruthy();
+  });
+
+  test('POST with a stale session ID still works (survives a server restart)', async () => {
+    const resp = await mcpPost(TEST_PORT, {
+      jsonrpc: '2.0',
+      id: 100,
+      method: 'tools/call',
+      params: { name: 'list_projects', arguments: {} },
+    }, { 'mcp-session-id': 'a-session-that-no-longer-exists' });
+    expect(resp.status).toBe(200);
+    const messages = parseJsonRpcFromResponse(resp.body);
+    expect(messages.find(m => m.result)).toBeTruthy();
+  });
+
+  test('GET /mcp reports 405 rather than holding an SSE stream open', (done) => {
+    http.get({ host: '127.0.0.1', port: TEST_PORT, path: '/mcp', headers: { Accept: 'text/event-stream' } }, (res) => {
+      res.resume();
+      expect(res.statusCode).toBe(405);
+      done();
+    });
   });
 });
